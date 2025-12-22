@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import React, { useState } from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from "react-router-dom";
 
 /* ================= LAYOUTS ================= */
 import EmployeeLayout from "./components/EmployeeLayout";
@@ -13,6 +13,12 @@ import Landing from "./pages/Landing";
 import AdminLogin from "./pages/Login/AdminLogin";
 import AccountantLogin from "./pages/Login/AccountantLogin";
 import EmployeeLogin from "./pages/Login/EmployeeLogin";
+
+/* ================= FORGOT PASSWORD COMPONENTS ================= */
+// Corrected paths based on your folder structure
+import AdminForgotPW from "./pages/Admin/forgotpw"; 
+import AccountantForgotPass from "./pages/Accountant/Forgotpass"; 
+import EmployeeForgotPassword from "./pages/Employee/ForgotPassword";
 
 /* ================= ADMIN PAGES ================= */
 import AdminDashboard from "./pages/Admin/AdminDashboard";
@@ -46,7 +52,6 @@ const ProtectedRoute = ({ allowedRole }) => {
     return <Navigate to="/" replace />;
   }
 
-  // Case-insensitive check and trim to avoid hidden space errors
   const userRole = user.role.toLowerCase().trim();
   const requiredRole = allowedRole.toLowerCase().trim();
 
@@ -54,10 +59,8 @@ const ProtectedRoute = ({ allowedRole }) => {
     return <Navigate to="/" replace />;
   }
 
-  return <Outlet />; // We use Outlet here for cleaner nesting
+  return <Outlet />;
 };
-
-import { Outlet } from "react-router-dom";
 
 function App() {
   const [user, setUser] = useState(() => {
@@ -70,12 +73,17 @@ function App() {
       <Routes>
         <Route path="/" element={<Landing />} />
 
-        {/* LOGIN ROUTES */}
+        {/* ================= PUBLIC LOGIN ROUTES ================= */}
         <Route path="/login/admin" element={<AdminLogin setUser={setUser} />} />
         <Route path="/login/accountant" element={<AccountantLogin setUser={setUser} />} />
         <Route path="/login/employee" element={<EmployeeLogin setUser={setUser} />} />
 
-        {/* ACCOUNTANT PANEL - NESTED STRUCTURE */}
+        {/* ================= PUBLIC FORGOT PASSWORD ROUTES ================= */}
+        <Route path="/admin/forgot-password" element={<AdminForgotPW />} />
+        <Route path="/accountant/forgot-password" element={<AccountantForgotPass />} />
+        <Route path="/employee/forgot-password" element={<EmployeeForgotPassword />} />
+
+        {/* ================= ACCOUNTANT PANEL (PROTECTED) ================= */}
         <Route path="/accountant" element={<ProtectedRoute allowedRole="accountant" />}>
           <Route element={<AccountantLayout />}>
             <Route index element={<Navigate to="dashboard" replace />} />
@@ -84,15 +92,10 @@ function App() {
             <Route path="salary-management" element={<Salary />} />
             <Route path="tax-compliance" element={<Tax />} />
             <Route path="financial-reports" element={<AccountantReport />} />
-            {/* Fallbacks for older links */}
-            <Route path="payroll" element={<AccountantPayroll />} />
-            <Route path="salary" element={<Salary />} />
-            <Route path="tax" element={<Tax />} />
-            <Route path="report" element={<AccountantReport />} />
           </Route>
         </Route>
 
-        {/* ADMIN PANEL */}
+        {/* ================= ADMIN PANEL (PROTECTED) ================= */}
         <Route path="/admin" element={<ProtectedRoute allowedRole="admin" />}>
           <Route element={<AdminLayout />}>
             <Route index element={<Navigate to="dashboard" replace />} />
@@ -106,7 +109,7 @@ function App() {
           </Route>
         </Route>
 
-        {/* EMPLOYEE PANEL */}
+        {/* ================= EMPLOYEE PANEL (PROTECTED) ================= */}
         <Route path="/employee" element={<ProtectedRoute allowedRole="employee" />}>
           <Route element={<EmployeeLayout />}>
             <Route index element={<Navigate to="dashboard" replace />} />
@@ -118,6 +121,7 @@ function App() {
           </Route>
         </Route>
 
+        {/* FALLBACK */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>

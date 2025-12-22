@@ -2,8 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./ForgotPassword.css";
 
-
-export default function ForgotPassword() {
+export default function Forgotpass() {
   const [email, setEmail] = useState("");
   const [isSubmitted, setIsSubmitted] = useState(false);
   const navigate = useNavigate();
@@ -34,7 +33,7 @@ export default function ForgotPassword() {
         </div>
 
         <p className="forgot-description">
-          Enter your admin email address and we'll send you instructions to reset your password.
+          Enter your registered accountant email address and we'll send you instructions to reset your password.
         </p>
 
         {isSubmitted && (
@@ -55,7 +54,7 @@ export default function ForgotPassword() {
             />
           </div>
 
-          <button type="submit" className="login-btn admin-theme">
+          <button type="submit" className="login-btn accountant-theme">
             Send Reset Link
           </button>
         </form>
@@ -63,15 +62,13 @@ export default function ForgotPassword() {
         <div className="login-footer">
           <button 
             type="button" 
-            onClick={() => navigate("/accountant")}
+            onClick={() => navigate("/login/accountant")} 
             className="link-button"
           >
             Back to Login
           </button>
         </div>
-   
-      
-        </div>
+      </div>
     </div>
   );
 }

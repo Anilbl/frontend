@@ -54,6 +54,7 @@ export default function AdminLogin({ setUser }) {
             Sign In
           </button>
         </form>
+        
 
         <div className="auth-footer">
           <button onClick={() => navigate("/")} className="btn-text">
