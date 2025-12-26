@@ -1,77 +1,90 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import "./ForgotPassword.css";
-import"./AdminLogin.jsx";
+import axios from "axios";
 
-export default function ForgotPassword() {
+const ForgotPassword = () => {
   const [email, setEmail] = useState("");
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState({ type: "", text: "" });
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleResetRequest = async (e) => {
     e.preventDefault();
-    
-    // Simulate sending reset link
-    console.log("Password reset link sent to:", email);
-    setIsSubmitted(true);
-    
-    // Clear email after submission
-    setEmail("");
-    
-    // Hide success message after 5 seconds
-    setTimeout(() => {
-      setIsSubmitted(false);
-    }, 5000);
+    setLoading(true);
+    setMessage({ type: "", text: "" });
+
+    try {
+      // Points to your Spring Boot backend on port 8080
+      const response = await axios.post("http://localhost:8080/api/users/forgot-password", null, {
+        params: { email }
+      });
+      setMessage({ type: "success", text: "Reset link sent! Please check your email." });
+    } catch (error) {
+      setMessage({ type: "error", text: "Email not found or server is unreachable." });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="login-page">
-      <div className="login-card">
-        <div className="brand-section">
-          <div className="logo-placeholder">NAST</div>
-          <h2>Admin Portal</h2>
-          <h3>Forgot Password</h3>
+    <div className="auth-container">
+      <div className="auth-card">
+        <div className="auth-header">
+          <div className="auth-logo">NAST</div>
+          <h2>Employee Portal</h2>
+          <p>Forgot Password</p>
         </div>
-
-        <p className="forgot-description">
-          Enter your admin email address and we'll send you instructions to reset your password.
+        
+        <p className="auth-instruction">
+          Enter your employee email address and we'll send you instructions to reset your password.
         </p>
 
-        {isSubmitted && (
-          <div className="success-message">
-            Password reset link has been sent to your email address. Please check your inbox.
+        {message.text && (
+          <div className={`alert ${message.type === "success" ? "alert-success" : "alert-danger"}`}>
+            {message.text}
           </div>
         )}
 
-        <form onSubmit={handleSubmit}>
-          <div className="input-group">
-            <label>Admin Email</label>
+        <form onSubmit={handleResetRequest}>
+          <div className="form-group">
+            <label>EMPLOYEE EMAIL</label>
             <input
               type="email"
-              placeholder="admin@nast.edu.np"
+              placeholder="employee@nast.edu.np"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
             />
           </div>
 
-          <button type="submit" className="login-btn admin-theme">
-            Send Reset Link
+          <button type="submit" className="btn-primary" disabled={loading}>
+            {loading ? "Sending..." : "Send Reset Link"}
           </button>
         </form>
 
-        <div className="login-footer">
+        <div className="auth-footer">
+          {/* ✅ FIXED: Corrected path to navigate back to Login specifically */}
           <button 
-            type="button" 
-            onClick={() => navigate("/admin")}
-            className="link-button"
+            type="button"
+            onClick={() => navigate("/login/employee")} 
+            className="btn-text" 
+            style={{ 
+                backgroundColor: '#dc3545', 
+                color: 'white', 
+                padding: '10px', 
+                borderRadius: '5px', 
+                width: '100%', 
+                border: 'none', 
+                marginTop: '10px',
+                cursor: 'pointer' 
+            }}
           >
             Back to Login
           </button>
         </div>
-   
-      
-        </div>
+      </div>
     </div>
   );
-}
+};
+
+export default ForgotPassword;

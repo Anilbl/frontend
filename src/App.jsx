@@ -15,10 +15,12 @@ import AccountantLogin from "./pages/Login/AccountantLogin";
 import EmployeeLogin from "./pages/Login/EmployeeLogin";
 
 /* ================= FORGOT PASSWORD COMPONENTS ================= */
-// Corrected paths based on your folder structure
-import AdminForgotPW from "./pages/Admin/forgotpw"; 
+// Fixed: Changed 'forgotpw' to 'Forgotpw' to resolve casing conflict
+import AdminForgotPW from "./pages/Admin/Forgotpw"; 
 import AccountantForgotPass from "./pages/Accountant/Forgotpass"; 
 import EmployeeForgotPassword from "./pages/Employee/ForgotPassword";
+// ✅ NEW IMPORT
+import ResetPassword from "./pages/Common/ResetPassword"; 
 
 /* ================= ADMIN PAGES ================= */
 import AdminDashboard from "./pages/Admin/AdminDashboard";
@@ -82,6 +84,9 @@ function App() {
         <Route path="/admin/forgot-password" element={<AdminForgotPW />} />
         <Route path="/accountant/forgot-password" element={<AccountantForgotPass />} />
         <Route path="/employee/forgot-password" element={<EmployeeForgotPassword />} />
+        
+        {/* ✅ NEW PUBLIC RESET ROUTE (Accessed via Email Link) */}
+        <Route path="/reset-password" element={<ResetPassword />} />
 
         {/* ================= ACCOUNTANT PANEL (PROTECTED) ================= */}
         <Route path="/accountant" element={<ProtectedRoute allowedRole="accountant" />}>

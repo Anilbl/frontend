@@ -1,77 +1,89 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import "./ForgotPassword.css";
+import axios from "axios";
+import "./ForgotPassword.css"; 
 
-
-export default function ForgotPassword() {
+const Forgotpw = () => {
   const [email, setEmail] = useState("");
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState({ type: "", text: "" });
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleResetRequest = async (e) => {
     e.preventDefault();
-    
-    // Simulate sending reset link
-    console.log("Password reset link sent to:", email);
-    setIsSubmitted(true);
-    
-    // Clear email after submission
-    setEmail("");
-    
-    // Hide success message after 5 seconds
-    setTimeout(() => {
-      setIsSubmitted(false);
-    }, 5000);
+    setLoading(true);
+    setMessage({ type: "", text: "" });
+
+    try {
+      // 1. Trigger the OTP generation and email delivery
+      await axios.post("http://localhost:8080/api/users/forgot-password", null, {
+        params: { email }
+      });
+
+      setMessage({ type: "success", text: "OTP sent! Redirecting to reset page..." });
+
+      // 2. WAIT & REDIRECT: Give the user a moment to see the message, then move to the OTP screen
+      setTimeout(() => {
+        navigate("/reset-password"); 
+      }, 2000);
+
+    } catch (error) {
+      setMessage({ type: "error", text: "Email not found or server is unreachable." });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBackToLogin = () => {
+    localStorage.removeItem("user_session");
+    navigate("/login/admin");
   };
 
   return (
-    <div className="login-page">
-      <div className="login-card">
-        <div className="brand-section">
-          <div className="logo-placeholder">NAST</div>
-          <h2>Employee Portal</h2>
-          <h3>Forgot Password</h3>
+    <div className="auth-container">
+      <div className="auth-card">
+        <div className="auth-header">
+          <div className="auth-logo">NAST</div>
+          <h2>Admin Portal</h2>
+          <p>Forgot Password</p>
         </div>
-
-        <p className="forgot-description">
-          Enter your admin email address and we'll send you instructions to reset your password.
+        
+        <p className="auth-instruction">
+          Enter your admin email and we'll send a 6-digit OTP to reset your password.
         </p>
 
-        {isSubmitted && (
-          <div className="success-message">
-            Password reset link has been sent to your email address. Please check your inbox.
+        {message.text && (
+          <div className={`alert ${message.type === "success" ? "alert-success" : "alert-danger"}`}>
+            {message.text}
           </div>
         )}
 
-        <form onSubmit={handleSubmit}>
-          <div className="input-group">
-            <label>Employee Email</label>
+        <form onSubmit={handleResetRequest}>
+          <div className="form-group">
+            <label>ADMIN EMAIL</label>
             <input
               type="email"
-              placeholder="employee@nast.edu.np"
+              className="auth-input"
+              placeholder="admin@nast.edu.np"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
             />
           </div>
 
-          <button type="submit" className="login-btn admin-theme">
-            Send Reset Link
+          <button type="submit" className="btn-primary" disabled={loading}>
+            {loading ? "Sending OTP..." : "Send Reset OTP"}
           </button>
         </form>
 
-        <div className="login-footer">
-          <button 
-            type="button" 
-            onClick={() => navigate("/admin")}
-            className="link-button"
-          >
+        <div className="auth-footer">
+          <button type="button" onClick={handleBackToLogin} className="back-to-login-btn">
             Back to Login
           </button>
         </div>
-   
-      
-        </div>
+      </div>
     </div>
   );
-}
+};
+
+export default Forgotpw;

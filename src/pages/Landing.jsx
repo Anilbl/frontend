@@ -59,7 +59,7 @@ const Landing = () => {
 
         <footer className="landing-footer">
           <p>&copy; 2025 NAST Payroll System. All Rights Reserved.</p>
-        </footer> {/* Fixed: Changed </div> to </footer> */}
+        </footer>
       </div>
     </div>
   );
