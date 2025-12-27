@@ -1,0 +1,37 @@
+.org-management-container {
+  padding: 20px;
+  background-color: #f8f9fa;
+  min-height: 100vh;
+}
+
+.page-title {
+  margin-bottom: 25px;
+  color: #333;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  border-left: 5px solid #673ab7;
+  padding-left: 15px;
+}
+
+.org-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px; /* Space between tables */
+  justify-content: center;
+}
+
+.grid-item {
+  flex: 1 1 calc(50% - 20px); /* Takes 50% width minus gap */
+  min-width: 450px; /* Prevents tables from getting too squashed */
+}
+
+.grid-item.full-width {
+  flex: 1 1 100%; /* Makes the Roles table take the full width below */
+  margin-top: 10px;
+}
+
+/* Mobile Responsive */
+@media (max-width: 1000px) {
+  .grid-item {
+    flex: 1 1 100%;
+  }
+}

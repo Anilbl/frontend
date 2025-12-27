@@ -15,11 +15,9 @@ import AccountantLogin from "./pages/Login/AccountantLogin";
 import EmployeeLogin from "./pages/Login/EmployeeLogin";
 
 /* ================= FORGOT PASSWORD COMPONENTS ================= */
-// Fixed: Changed 'forgotpw' to 'Forgotpw' to resolve casing conflict
 import AdminForgotPW from "./pages/Admin/Forgotpw"; 
 import AccountantForgotPass from "./pages/Accountant/Forgotpass"; 
 import EmployeeForgotPassword from "./pages/Employee/ForgotPassword";
-// ✅ NEW IMPORT
 import ResetPassword from "./pages/Common/ResetPassword"; 
 
 /* ================= ADMIN PAGES ================= */
@@ -29,7 +27,9 @@ import Attendance from "./pages/Admin/Attendance";
 import Leave from "./pages/Admin/Leave";
 import AdminPayroll from "./pages/Admin/Payroll"; 
 import Report from "./pages/Admin/Report";
-import SystemConfig from "./pages/Admin/System-Config";
+import SystemConfig from "./pages/Admin/SystemConfig/System-Config";
+// ✅ NEW IMPORT: Organization Management Layout
+import OrgLayout from "./pages/Admin/Organization/OrgLayout";
 
 /* ================= ACCOUNTANT PAGES ================= */
 import AccountantDashboard from "./pages/Accountant/AccountantDashboard"; 
@@ -84,8 +84,6 @@ function App() {
         <Route path="/admin/forgot-password" element={<AdminForgotPW />} />
         <Route path="/accountant/forgot-password" element={<AccountantForgotPass />} />
         <Route path="/employee/forgot-password" element={<EmployeeForgotPassword />} />
-        
-        {/* ✅ NEW PUBLIC RESET ROUTE (Accessed via Email Link) */}
         <Route path="/reset-password" element={<ResetPassword />} />
 
         {/* ================= ACCOUNTANT PANEL (PROTECTED) ================= */}
@@ -106,6 +104,8 @@ function App() {
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<AdminDashboard />} />
             <Route path="employees" element={<Employees />} />
+            {/* ✅ NEW ROUTE: Organization Setup */}
+            <Route path="organization" element={<OrgLayout />} />
             <Route path="attendance" element={<Attendance />} />
             <Route path="leave" element={<Leave />} />
             <Route path="payroll" element={<AdminPayroll />} />

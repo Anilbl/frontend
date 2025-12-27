@@ -1,0 +1,102 @@
+.org-section.role-theme {
+  background-color: #ffffff;
+  border-radius: 8px;
+  padding: 20px;
+  border: 1px solid #e8eaf6;
+  box-shadow: 0 4px 12px rgba(63, 81, 181, 0.08);
+  width: 100%;
+  box-sizing: border-box;
+  /* Remove fixed height so it matches other tables */
+  height: auto; 
+  min-height: 300px;
+}
+
+.role-theme h3 {
+  color: #283593;
+  margin: 0;
+  font-size: 1.3rem;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+/* Scrollable area if list gets very long */
+.table-wrapper {
+  max-height: 400px; 
+  overflow-y: auto;
+  border: 1px solid #eee;
+  border-radius: 4px;
+}
+
+.org-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.org-table thead th {
+  background-color: #3f51b5; /* Indigo Theme */
+  color: white;
+  text-align: left;
+  padding: 12px;
+  position: sticky;
+  top: 0;
+}
+
+.org-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+/* Action Button Styles - Same as Departments */
+.btn-small {
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  margin: 0 2px;
+  border: 1px solid transparent;
+  transition: 0.2s;
+}
+
+.btn-small.update, .btn-small.save {
+  background-color: #e8eaf6;
+  color: #3f51b5;
+  border-color: #3f51b5;
+}
+
+.btn-small.update:hover {
+  background-color: #3f51b5;
+  color: white;
+}
+
+.btn-small.delete, .btn-small.cancel {
+  background-color: #fff1f0;
+  color: #f5222d;
+  border-color: #ffa39e;
+}
+
+.btn-small.delete:hover {
+  background-color: #f5222d;
+  color: white;
+}
+
+.add-btn {
+  background-color: #3f51b5;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.org-table input {
+  width: 90%;
+  padding: 5px;
+  border: 1px solid #3f51b5;
+  border-radius: 3px;
+}

@@ -1,0 +1,37 @@
+.org-section.leave-theme {
+  background-color: #ffffff;
+  border-radius: 8px;
+  padding: 20px;
+  border: 1px solid #e0f2f1;
+  box-shadow: 0 4px 12px rgba(0, 150, 136, 0.08);
+  width: 100%;
+  height: 450px;
+  display: flex;
+  flex-direction: column;
+}
+
+.leave-theme h3 { color: #00796b; margin: 0; font-size: 1.2rem; }
+
+.leave-theme .org-table thead th {
+  background-color: #009688; /* Teal Theme */
+}
+
+.leave-theme .add-btn { background-color: #009688; }
+.read-only-id {
+  color: #888;
+  font-weight: bold;
+  font-family: monospace;
+  background-color: #f9f9f9; /* Light grey to signal uneditable */
+  text-align: center;
+}
+
+/* Ensure Inputs fit well in small columns */
+.org-table input[type="number"] {
+  width: 60px;
+  text-align: center;
+}
+
+.org-table input[type="checkbox"] {
+  transform: scale(1.2);
+  cursor: pointer;
+}
