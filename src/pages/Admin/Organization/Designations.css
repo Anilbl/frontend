@@ -1,0 +1,118 @@
+/* Container for the Designation section */
+.org-section.desg-theme {
+  background-color: #ffffff;
+  border-radius: 8px;
+  padding: 20px;
+  border: 1px solid #f3e5f5;
+  box-shadow: 0 4px 12px rgba(103, 58, 183, 0.08);
+  width: 100%;
+  box-sizing: border-box;
+  height: 500px; /* Matched height with Departments */
+  display: flex;
+  flex-direction: column;
+}
+
+.desg-theme h3 {
+  color: #512da8;
+  margin-top: 0;
+  font-size: 1.4rem;
+  border-bottom: 2px solid #673ab7;
+  display: inline-block;
+  padding-bottom: 5px;
+  margin-bottom: 20px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  flex-shrink: 0;
+}
+
+.table-wrapper {
+  flex-grow: 1;
+  overflow-y: auto;
+  border: 1px solid #f3e5f5;
+  border-radius: 4px;
+}
+
+.desg-theme .org-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed; 
+}
+
+.desg-theme .org-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background-color: #673ab7;
+  color: white;
+  text-align: left;
+  padding: 12px;
+}
+
+.desg-theme .org-table td {
+  padding: 12px;
+  border-bottom: 1px solid #f3e5f5;
+  word-wrap: break-word;
+}
+
+.desg-theme .org-table tr:hover {
+  background-color: #faf9ff;
+}
+
+.desg-theme .org-table input {
+  width: 100%;
+  padding: 6px;
+  border: 1px solid #d1c4e9;
+  border-radius: 4px;
+}
+
+/* Action Buttons - Matched with Department Color Logic */
+.btn-small {
+  padding: 5px 12px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  margin-right: 5px;
+  transition: all 0.2s;
+}
+
+.btn-small.update, .btn-small.save {
+  background-color: #e0f2f1; /* Light Green/Teal */
+  color: #00796b;
+  border: 1px solid #00796b;
+}
+
+.btn-small.delete, .btn-small.cancel {
+  background-color: #ffebee; /* Light Red */
+  color: #c62828;
+  border: 1px solid #c62828;
+}
+
+.btn-small:hover {
+  opacity: 0.8;
+}
+
+.add-btn {
+  background-color: #673ab7;
+  color: #ffffff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.add-btn:hover {
+  background-color: #512da8;
+}
+
+/* Scrollbar Styling */
+.table-wrapper::-webkit-scrollbar { width: 8px; }
+.table-wrapper::-webkit-scrollbar-thumb {
+  background: #d1c4e9;
+  border-radius: 4px;
+}
