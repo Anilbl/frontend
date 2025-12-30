@@ -1,149 +1,190 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 import "./LeaveManagement.css";
 
 const LeaveManagement = () => {
-  // Initial Balance
-  const [leaveBalance, setLeaveBalance] = useState(15);
-  const totalEntitled = 20; // Used for progress bar calculation
+  const [currentEmpId] = useState(1); 
+  const [leaveTypes, setLeaveTypes] = useState([]);
+  const [balances, setBalances] = useState([]);
+  const [leaveHistory, setLeaveHistory] = useState([]);
+  const [successMsg, setSuccessMsg] = useState("");
+  const [errorMsg, setErrorMsg] = useState(""); // For backend errors
+  const [loading, setLoading] = useState(true);
 
-  // Form State
   const [formData, setFormData] = useState({
-    type: "Annual Leave",
-    days: 1,
+    leaveTypeId: "",
+    startDate: "",
+    endDate: "",
     reason: "",
   });
 
-  // History State
-  const [history, setHistory] = useState([
-    { id: 1, type: "Sick Leave", days: 2, status: "approved", date: "2025-01-10" },
-    { id: 2, type: "Annual Leave", days: 3, status: "approved", date: "2024-12-15" },
-  ]);
+  useEffect(() => {
+    loadLeaveData();
+  }, [currentEmpId]);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const requestedDays = parseInt(formData.days);
-
-    // Logic: Decrease balance if request is valid
-    if (requestedDays > leaveBalance) {
-      alert("Error: You do not have enough leave days remaining.");
-      return;
+  const loadLeaveData = async () => {
+    try {
+      setLoading(true);
+      const [typesRes, balRes, histRes] = await Promise.all([
+        axios.get("http://localhost:8080/api/leave-types"),
+        axios.get(`http://localhost:8080/api/leave-balance/employee/${currentEmpId}`),
+        axios.get(`http://localhost:8080/api/employee-leaves`)
+      ]);
+      
+      setLeaveTypes(typesRes.data);
+      setBalances(balRes.data);
+      const myHistory = histRes.data.filter(item => item.employee?.empId === currentEmpId);
+      setLeaveHistory(myHistory);
+    } catch (err) {
+      console.error("Fetch Error:", err);
+    } finally {
+      setLoading(false);
     }
-
-    // 1. Decrease the count
-    setLeaveBalance((prev) => prev - requestedDays);
-
-    // 2. Add to history table
-    const newRequest = {
-      id: Date.now(),
-      type: formData.type,
-      days: requestedDays,
-      status: "pending",
-      date: new Date().toISOString().split("T")[0],
-    };
-
-    setHistory([newRequest, ...history]);
-
-    // 3. Reset Form
-    setFormData({ ...formData, reason: "", days: 1 });
-    alert("Leave request submitted successfully!");
   };
 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSuccessMsg("");
+    setErrorMsg("");
+    
+    const payload = {
+      employee: { empId: currentEmpId },
+      leaveType: { leaveTypeId: parseInt(formData.leaveTypeId) },
+      startDate: formData.startDate,
+      endDate: formData.endDate,
+      reason: formData.reason,
+      status: "Pending"
+    };
+
+    try {
+      await axios.post("http://localhost:8080/api/employee-leaves", payload);
+      setSuccessMsg("Application Sent Successfully!");
+      setFormData({ leaveTypeId: "", startDate: "", endDate: "", reason: "" });
+      loadLeaveData();
+      
+      // Auto-hide after 5 seconds
+      setTimeout(() => setSuccessMsg(""), 5000);
+    } catch (err) {
+      // Capture the specific error from backend (like the totalDays null error)
+      const msg = err.response?.data?.message || "Check backend constraints (e.g. totalDays null)";
+      setErrorMsg(`Failed: ${msg}`);
+      
+      // Auto-hide after 5 seconds
+      setTimeout(() => setErrorMsg(""), 5000);
+    }
+  };
+
+  if (loading) return <div className="loading-state">Initializing Module...</div>;
+
   return (
-    <div className="page-container">
-      <div className="header-section">
-        <h1>Leave Management</h1>
-       
+    <div className="leave-module-wrapper">
+      <div className="module-header-center">
+        <h1>Leave Management Module</h1>
       </div>
 
-      <div className="leave-grid">
-        {/* LEFT: Balance Card */}
-        <div className="balance-card">
-          <div className="balance-info">
-            <span className="label">Days Remaining</span>
-            <div className="balance-value">{leaveBalance}</div>
-            <span className="unit">Out of {totalEntitled} Days Total</span>
+      {/* Message Notifications */}
+      {successMsg && <div className="success-toast-message">{successMsg}</div>}
+      {errorMsg && <div className="error-toast-message">{errorMsg}</div>}
+
+      <div className="leave-top-layout">
+        <div className="balance-box-compact">
+          <span className="box-label">Available Quota</span>
+          <div className="days-display">
+            {balances.reduce((sum, b) => sum + b.currentBalanceDays, 0)}
+            <span className="days-unit">Days</span>
           </div>
-          <div className="progress-bar-container">
-            <div
-              className="progress-fill"
-              style={{ width: `${(leaveBalance / totalEntitled) * 100}%` }}
-            ></div>
+          <div className="approved-footer">
+            Approved: <strong>{leaveHistory.filter(l => l.status === 'Approved').reduce((s, l) => s + (l.totalDays || 0), 0)}</strong>
           </div>
         </div>
 
-        {/* RIGHT: Request Form */}
-        <div className="request-card">
-          <h3>New Leave Request</h3>
-          <form onSubmit={handleSubmit}>
-            <div className="form-row">
-              <div className="input-group">
-                <label>Leave Type</label>
-                <select
-                  value={formData.type}
-                  onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                >
-                  <option>Annual Leave</option>
-                  <option>Sick Leave</option>
-                  <option>Casual Leave</option>
-                  <option>Maternity/Paternity</option>
-                </select>
-              </div>
-              <div className="input-group">
-                <label>Duration (Days)</label>
-                <input
-                  type="number"
-                  min="1"
-                  max={leaveBalance}
-                  value={formData.days}
-                  onChange={(e) => setFormData({ ...formData, days: e.target.value })}
-                  required
-                />
-              </div>
-            </div>
-            <div className="input-group">
-              <label>Reason for Leave</label>
-              <textarea
-                rows="4"
-                placeholder="Briefly describe your reason..."
-                value={formData.reason}
-                onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
+        <div className="apply-box-large">
+          <h2 className="apply-title">Apply for New Leave</h2>
+          <form onSubmit={handleSubmit} className="leave-form-grid">
+            <div className="form-field">
+              <select 
+                value={formData.leaveTypeId} 
+                onChange={(e) => setFormData({...formData, leaveTypeId: e.target.value})}
                 required
-              ></textarea>
+              >
+                <option value="">Select Leave Type</option>
+                {leaveTypes.map(t => <option key={t.leaveTypeId} value={t.leaveTypeId}>{t.typeName}</option>)}
+              </select>
             </div>
-            <button type="submit" className="btn-primary full-width">
-              Submit Leave Request
-            </button>
+
+            <div className="form-field-row">
+              <div className="date-group">
+                <label>From Date</label>
+                <input type="date" value={formData.startDate} onChange={(e)=>setFormData({...formData, startDate: e.target.value})} required />
+              </div>
+              <div className="date-group">
+                <label>To Date</label>
+                <input type="date" value={formData.endDate} onChange={(e)=>setFormData({...formData, endDate: e.target.value})} required />
+              </div>
+            </div>
+
+            <div className="form-field">
+              <textarea 
+                placeholder="Reason for leave request..."
+                value={formData.reason}
+                onChange={(e) => setFormData({...formData, reason: e.target.value})}
+                required
+              />
+            </div>
+
+            <div className="submit-action-center">
+              <button type="submit" className="btn-apply-gradient">Submit Application</button>
+            </div>
           </form>
         </div>
       </div>
 
-      {/* BOTTOM: History Table */}
-      <div className="table-container" style={{ marginTop: "2.5rem" }}>
-        <h3>Leave History</h3>
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Request Date</th>
-              <th>Type</th>
-              <th>Days</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {history.map((item) => (
-              <tr key={item.id}>
-                <td>{item.date}</td>
-                <td>{item.type}</td>
-                <td>{item.days} Day(s)</td>
-                <td>
-                  <span className={`pill ${item.status}`}>
-                    {item.status.toUpperCase()}
-                  </span>
-                </td>
+      <div className="leave-history-container">
+        <h2 className="history-section-title">Your Leave History</h2>
+        <div className="table-wrapper-scroll">
+          <table className="leave-data-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Category</th>
+                <th>Duration</th>
+                <th>Days</th>
+                <th>Status</th>
+                <th>Approved By</th>
+                <th>Approved At</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {leaveHistory.map((item) => (
+                <tr key={item.leaveId}>
+                  <td>#LV-{item.leaveId}</td>
+                  <td>{item.leaveType?.typeName}</td>
+                  <td>{item.startDate} to {item.endDate}</td>
+                  <td className="bold-days">{item.totalDays}</td>
+                  <td>
+                    <span className={`status-pill ${item.status?.toLowerCase()}`}>
+                      {item.status}
+                    </span>
+                  </td>
+                  <td>
+                    {item.status === "Approved" && item.approvedBy ? (
+                      <span className="admin-text">{item.approvedBy.username}</span>
+                    ) : (
+                      <span className="dash-text">—</span>
+                    )}
+                  </td>
+                  <td>
+                    {item.status === "Approved" && item.approvedAt ? (
+                      <span className="date-text">{new Date(item.approvedAt).toLocaleDateString()}</span>
+                    ) : (
+                      <span className="dash-text">—</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
