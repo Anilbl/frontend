@@ -41,15 +41,17 @@ export default function AdminAttendance() {
   }, [selectedEmp]);
 
   // Attendance summary
-  const summary = attendance.reduce(
-    (acc, curr) => {
-      if (curr.status === "Present") acc.present += 1;
-      if (curr.status === "Absent") acc.absent += 1;
-      if (curr.status === "Leave") acc.leave += 1;
-      return acc;
-    },
-    { present: 0, absent: 0, leave: 0 }
-  );
+ 
+  const summary = attendance.reduce((acc, { status }) => {
+  if (status) {
+    acc[status] = (acc[status] || 0) + 1; // increment count for the status
+  }
+  return acc;
+}, {});
+
+
+
+
 
   return (
     <div className="attendance-container">
@@ -80,6 +82,18 @@ export default function AdminAttendance() {
 
       {!loading && attendance.length > 0 && (
         <>
+                <div className="attendance-summary">
+  <h3>Summary:</h3>
+  {Object.keys(summary).length === 0 ? (
+    <p>No attendance data</p>
+  ) : (
+    Object.entries(summary).map(([status, count]) => (
+      <p key={status}>
+        {status}: {count}
+      </p>
+    ))
+  )}
+</div>
           <h2>Attendance History</h2>
           <table className="attendance-table">
             <thead>
@@ -108,12 +122,8 @@ export default function AdminAttendance() {
             </tbody>
           </table>
 
-          <div className="attendance-summary">
-            <h3>Summary:</h3>
-            <p>Present: {summary.present}</p>
-            <p>Absent: {summary.absent}</p>
-            <p>Leave: {summary.leave}</p>
-          </div>
+  
+
         </>
       )}
     </div>
