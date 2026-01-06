@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+// 1. IMPORTANT: Use your custom api instance, NOT raw axios
+import api from "../../api/axios"; 
 import "./LeaveManagement.css";
 
 const LeaveManagement = () => {
+  // 2. Ideally, get the real employee ID from the logged-in user state/localStorage
   const [currentEmpId] = useState(1); 
   const [leaveTypes, setLeaveTypes] = useState([]);
   const [balances, setBalances] = useState([]);
@@ -18,7 +20,6 @@ const LeaveManagement = () => {
     reason: "",
   });
 
-  // Get today's date in YYYY-MM-DD format for the 'min' attribute
   const today = new Date().toISOString().split("T")[0];
 
   useEffect(() => {
@@ -28,18 +29,24 @@ const LeaveManagement = () => {
   const loadLeaveData = async () => {
     try {
       setLoading(true);
+      setErrorMsg("");
+
+      // 3. Using 'api' (custom instance) instead of 'axios'
       const [typesRes, balRes, histRes] = await Promise.all([
-        axios.get("http://localhost:8080/api/leave-types"),
-        axios.get(`http://localhost:8080/api/leave-balance/employee/${currentEmpId}`),
-        axios.get(`http://localhost:8080/api/employee-leaves`)
+        api.get("/leave-types"),
+        api.get(`/leave-balance/employee/${currentEmpId}`),
+        api.get("/employee-leaves")
       ]);
       
       setLeaveTypes(typesRes.data);
       setBalances(balRes.data);
+      
+      // Filter history to only show this employee's leaves
       const myHistory = histRes.data.filter(item => item.employee?.empId === currentEmpId);
       setLeaveHistory(myHistory);
     } catch (err) {
       console.error("Fetch Error:", err);
+      setErrorMsg("Failed to load leave data. Please check your permissions.");
     } finally {
       setLoading(false);
     }
@@ -54,16 +61,13 @@ const LeaveManagement = () => {
     const end = new Date(formData.endDate);
     const now = new Date(today);
 
-    // --- VALIDATION LOGIC ---
     if (start < now) {
       setErrorMsg("Invalid Date: Start Date cannot be in the past.");
-      setTimeout(() => setErrorMsg(""), 5000);
       return;
     }
 
     if (start > end) {
       setErrorMsg("Invalid Range: Start Date cannot be later than End Date.");
-      setTimeout(() => setErrorMsg(""), 5000);
       return;
     }
 
@@ -77,15 +81,15 @@ const LeaveManagement = () => {
     };
 
     try {
-      await axios.post("http://localhost:8080/api/employee-leaves", payload);
+      // 4. Using 'api' instance for POST as well
+      await api.post("/employee-leaves", payload);
       setSuccessMsg("Application Sent Successfully!");
       setFormData({ leaveTypeId: "", startDate: "", endDate: "", reason: "" });
-      loadLeaveData();
+      loadLeaveData(); // Refresh data
       setTimeout(() => setSuccessMsg(""), 5000);
     } catch (err) {
       const msg = err.response?.data?.message || "Check backend constraints.";
       setErrorMsg(`Failed: ${msg}`);
-      setTimeout(() => setErrorMsg(""), 5000);
     }
   };
 
@@ -132,7 +136,7 @@ const LeaveManagement = () => {
                 <input 
                   type="date" 
                   value={formData.startDate} 
-                  min={today} // Prevents selecting dates before today
+                  min={today}
                   onChange={(e)=>setFormData({...formData, startDate: e.target.value})} 
                   required 
                 />
@@ -142,7 +146,7 @@ const LeaveManagement = () => {
                 <input 
                   type="date" 
                   value={formData.endDate} 
-                  min={formData.startDate || today} // Prevents picking date before Start Date
+                  min={formData.startDate || today}
                   onChange={(e)=>setFormData({...formData, endDate: e.target.value})} 
                   required 
                 />
@@ -181,33 +185,39 @@ const LeaveManagement = () => {
               </tr>
             </thead>
             <tbody>
-              {leaveHistory.map((item) => (
-                <tr key={item.leaveId}>
-                  <td>#LV-{item.leaveId}</td>
-                  <td>{item.leaveType?.typeName}</td>
-                  <td>{item.startDate} to {item.endDate}</td>
-                  <td className="bold-days">{item.totalDays}</td>
-                  <td>
-                    <span className={`status-pill ${item.status?.toLowerCase()}`}>
-                      {item.status}
-                    </span>
-                  </td>
-                  <td>
-                    {item.status === "Approved" && item.approvedBy ? (
-                      <span className="admin-text">{item.approvedBy.username}</span>
-                    ) : (
-                      <span className="dash-text">—</span>
-                    )}
-                  </td>
-                  <td>
-                    {item.status === "Approved" && item.approvedAt ? (
-                      <span className="date-text">{new Date(item.approvedAt).toLocaleDateString()}</span>
-                    ) : (
-                      <span className="dash-text">—</span>
-                    )}
-                  </td>
+              {leaveHistory.length > 0 ? (
+                leaveHistory.map((item) => (
+                  <tr key={item.leaveId}>
+                    <td>#LV-{item.leaveId}</td>
+                    <td>{item.leaveType?.typeName}</td>
+                    <td>{item.startDate} to {item.endDate}</td>
+                    <td className="bold-days">{item.totalDays}</td>
+                    <td>
+                      <span className={`status-pill ${item.status?.toLowerCase()}`}>
+                        {item.status}
+                      </span>
+                    </td>
+                    <td>
+                      {item.status === "Approved" && item.approvedBy ? (
+                        <span className="admin-text">{item.approvedBy.username}</span>
+                      ) : (
+                        <span className="dash-text">—</span>
+                      )}
+                    </td>
+                    <td>
+                      {item.status === "Approved" && item.approvedAt ? (
+                        <span className="date-text">{new Date(item.approvedAt).toLocaleDateString()}</span>
+                      ) : (
+                        <span className="dash-text">—</span>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="7" style={{textAlign: 'center'}}>No leave history found.</td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
