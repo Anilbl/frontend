@@ -11,10 +11,25 @@ const Salary = () => {
   });
 
   useEffect(() => {
-    // Fetch from your Spring Boot API
-    axios.get('http://localhost:8080/api/salary-summary')
-      .then(res => setStats(res.data))
-      .catch(err => console.error("Error loading payroll data:", err));
+    const fetchSummary = async () => {
+      try {
+        // Retrieve token from storage (set during login)
+        const token = localStorage.getItem('token'); 
+        
+        // Updated URL to match the Controller: /api/payrolls/summary
+        const res = await axios.get('http://localhost:8080/api/payrolls/summary', {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        setStats(res.data);
+      } catch (err) {
+        console.error("Error loading payroll data:", err);
+        // If server is 403, it means the JWT token is missing or expired
+      }
+    };
+
+    fetchSummary();
   }, []);
 
   const formatM = (num) => `Rs. ${(num / 1000000).toFixed(2)}M`;
@@ -46,20 +61,24 @@ const Salary = () => {
           <h3>Departmental Breakdown</h3>
         </div>
         <div className="dept-list">
-          {stats.departments.map((d, i) => (
-            <div key={i} className="dept-row">
-              <div className="dept-info">
-                <h4>{d.name}</h4>
-                <p>Net Distribution: <strong>Rs. {d.net.toLocaleString()}</strong></p>
-              </div>
-              <div className="dept-progress-container">
-                <div className="progress-label">Tax: Rs. {d.tax.toLocaleString()}</div>
-                <div className="progress-bar">
+          {stats.departments && stats.departments.length > 0 ? (
+            stats.departments.map((d, i) => (
+              <div key={i} className="dept-row">
+                <div className="dept-info">
+                  <h4>{d.name}</h4>
+                  <p>Net Distribution: <strong>Rs. {d.net.toLocaleString()}</strong></p>
+                </div>
+                <div className="dept-progress-container">
+                  <div className="progress-label">Tax (1%): Rs. {d.tax.toLocaleString()}</div>
+                  <div className="progress-bar">
                     <div className="fill" style={{ width: `${(d.net / (d.net + d.tax)) * 100}%` }}></div>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))
+          ) : (
+            <p style={{ padding: '20px', textAlign: 'center' }}>No payroll data processed yet.</p>
+          )}
         </div>
       </div>
     </div>
