@@ -1,35 +1,18 @@
 import React, { useState, useEffect } from "react";
-import api from "../../api/axios"; // Use your axios.js instance
+import api from "../../api/axios"; 
 import "./Leave.css";
 
 const LeaveAdmin = () => {
   const [leaveRequests, setLeaveRequests] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  const TOTAL_ALLOWED = 30;
 
   const fetchLeaves = async () => {
     try {
-      const res = await api.get("/employee-leaves"); // relative path
-      const data = Array.isArray(res.data) ? res.data : [];
-
-      const formattedData = data.map((leave) => ({
-        ...leave,
-        emp_name: leave.employee
-          ? `${leave.employee.firstName} ${leave.employee.lastName}`
-          : "Unknown",
-        leave_type_name: leave.leaveType
-          ? leave.leaveType.typeName
-          : "Home Leave",
-        totalDays: leave.totalDays || 0,
-      }));
-
-      setLeaveRequests(formattedData);
-      setLoading(false);
+      const res = await api.get("/employee-leaves");
+      setLeaveRequests(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
-      console.error("Fetch error:", err.response?.data || err.message);
-      setError("Could not fetch leave records. Ensure Spring Boot is running.");
+      console.error("Fetch error:", err);
+    } finally {
       setLoading(false);
     }
   };
@@ -38,39 +21,39 @@ const LeaveAdmin = () => {
     fetchLeaves();
   }, []);
 
-  const getEmployeeUsedLeaves = (employeeName) => {
-    return leaveRequests
-      .filter(
-        (leave) => leave.emp_name === employeeName && leave.status === "Approved"
-      )
-      .reduce((sum, leave) => sum + leave.totalDays, 0);
-  };
+ const handleLeaveAction = async (leaveId, action) => {
+  // 1. Get session from storage
+  const sessionData = localStorage.getItem("user_session");
+  const userSession = sessionData ? JSON.parse(sessionData) : null;
+  
+  // 2. Flexible ID lookup (checks different possible paths in your object)
+  const adminId = userSession?.userId || userSession?.user?.userId || userSession?.id;
 
-  const handleLeaveAction = async (leaveId, action) => {
-    const userSession = JSON.parse(localStorage.getItem("user_session")); // token user
-    const adminId = userSession?.user?.userId || 1;
+  if (!adminId) {
+    console.error("Session data found:", userSession);
+    alert("Error: Admin ID not found in session. Please sign out and sign in again.");
+    return;
+  }
 
-    try {
-      await api.patch(`/employee-leaves/${leaveId}/status`, {
-        status: action,
-        adminId: adminId,
-      });
+  try {
+    // 3. Send the request
+    const response = await api.patch(`/employee-leaves/${leaveId}/status`, null, {
+      params: { 
+        status: action, 
+        adminId: adminId 
+      }
+    });
+    
+    alert(`Leave ${action} successfully.`);
+    fetchLeaves(); // Refresh the table list
+  } catch (err) {
+    console.error("Server Error:", err.response?.data);
+    const errorMsg = err.response?.data?.message || err.response?.data || "Check console for details";
+    alert("Failed to update: " + errorMsg);
+  }
+};
 
-      fetchLeaves(); // Refresh after action
-    } catch (err) {
-      console.error("Action error:", err.response?.data || err.message);
-      alert("Failed to update leave status.");
-    }
-  };
-
-  if (loading)
-    return <div className="leave-container">Loading system records...</div>;
-  if (error)
-    return (
-      <div className="leave-container" style={{ color: "red" }}>
-        {error}
-      </div>
-    );
+  if (loading) return <div className="leave-container">Loading leave requests...</div>;
 
   return (
     <div className="leave-container">
@@ -78,86 +61,37 @@ const LeaveAdmin = () => {
       <table className="leave-table">
         <thead>
           <tr>
-            <th>ID</th>
-            <th>Employee</th>
-            <th>Leave Type</th>
-            <th>Dates</th>
-            <th>Requested</th>
-            <th>Status</th>
-            <th>Total Taken</th>
-            <th>Remaining Days</th>
-            <th>Approved By</th>
-            <th>Approved At</th>
-            <th>Action</th>
+            <th>ID</th><th>Employee</th><th>Leave Type</th><th>Dates</th><th>Status</th><th>Action</th>
           </tr>
         </thead>
         <tbody>
-          {leaveRequests.map((leave) => {
-            const usedLeaves = getEmployeeUsedLeaves(leave.emp_name);
-            const remaining = TOTAL_ALLOWED - usedLeaves;
-
-            return (
+          {leaveRequests.length > 0 ? (
+            leaveRequests.map((leave) => (
               <tr key={leave.leaveId}>
-                <td>{leave.leaveId}</td>
-                <td>{leave.emp_name}</td>
-                <td>{leave.leave_type_name}</td>
+                <td>#LV-{leave.leaveId}</td>
+                <td>{leave.employee?.firstName} {leave.employee?.lastName}</td>
+                <td>{leave.leaveType?.typeName}</td>
+                <td>{leave.startDate} to {leave.endDate}</td>
                 <td>
-                  {leave.startDate} <span className="date-separator">to</span>{" "}
-                  {leave.endDate}
-                </td>
-                <td>{leave.totalDays} Days</td>
-                <td>
-                  <span
-                    className={`status-badge ${
-                      (leave.status || "pending").toLowerCase()
-                    }`}
-                  >
-                    {leave.status || "Pending"}
+                  <span className={`status-badge ${(leave.status || "pending").toLowerCase()}`}>
+                    {leave.status}
                   </span>
                 </td>
-                <td>{usedLeaves}</td>
-                <td className="remaining-cell" style={{ fontWeight: "bold" }}>
-                  {remaining}
-                </td>
                 <td>
-                  {leave.approvedBy
-                    ? `User ID: ${leave.approvedBy.userId}`
-                    : "—"}
-                </td>
-                <td>
-                  {leave.approvedAt
-                    ? new Date(leave.approvedAt).toLocaleString()
-                    : "—"}
-                </td>
-                <td>
-                  {!leave.status || leave.status === "Pending" ? (
+                  {leave.status === "Pending" ? (
                     <div className="btn-group">
-                      <button
-                        className="btn-approve"
-                        onClick={() =>
-                          handleLeaveAction(leave.leaveId, "Approved")
-                        }
-                      >
-                        Approve
-                      </button>
-                      <button
-                        className="btn-reject"
-                        onClick={() =>
-                          handleLeaveAction(leave.leaveId, "Rejected")
-                        }
-                      >
-                        Reject
-                      </button>
+                      <button className="btn-approve" onClick={() => handleLeaveAction(leave.leaveId, "Approved")}>Approve</button>
+                      <button className="btn-reject" onClick={() => handleLeaveAction(leave.leaveId, "Rejected")}>Reject</button>
                     </div>
                   ) : (
-                    <span className={`text-final ${leave.status.toLowerCase()}`}>
-                      {leave.status}
-                    </span>
+                    <span className={`text-final ${leave.status.toLowerCase()}`}>Actioned: {leave.status}</span>
                   )}
                 </td>
               </tr>
-            );
-          })}
+            ))
+          ) : (
+            <tr><td colSpan="6" style={{textAlign: 'center'}}>No leave requests found.</td></tr>
+          )}
         </tbody>
       </table>
     </div>

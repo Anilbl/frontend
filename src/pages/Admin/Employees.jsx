@@ -1,184 +1,175 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  getEmployees,
-  deleteEmployee,
-  getActiveEmployeeStats,
-} from "../../api/employeeApi";
-import ConfirmModal from "../../components/ConfirmModal";
+import { getEmployees, deleteEmployee } from "../../api/employeeApi";
+import ConfirmModal from "../../components/ConfirmModal"; // Ensure path is correct
 import "./Employees.css";
 
 export default function Employees() {
   const [employees, setEmployees] = useState([]);
-  const [activeStats, setActiveStats] = useState({});
+  const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState(null);
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [deleteId, setDeleteId] = useState(null);
+  
+  // Custom Modal State
+  const [showModal, setShowModal] = useState(false);
+  const [targetId, setTargetId] = useState(null);
+
+  // Status Message State
+  const [statusMsg, setStatusMsg] = useState({ type: "", text: "" });
 
   const navigate = useNavigate();
 
-  /* =========================
-     INITIAL FETCH
-     ========================= */
   useEffect(() => {
     fetchData();
   }, []);
 
   const fetchData = async () => {
     try {
-      const [empRes, statRes] = await Promise.all([
-        getEmployees(),
-        getActiveEmployeeStats(),
-      ]);
-      setEmployees(empRes.data || []);
-      setActiveStats(statRes.data || {});
+      const res = await getEmployees();
+      const data = res.data || res || [];
+      setEmployees(data);
     } catch (err) {
-      console.error(
-        "Failed to load employees. Check JWT token or backend.",
-        err
-      );
+      setStatusMsg({ type: "error", text: "Sync error: Could not reach database." });
+    } finally {
+      setLoading(false);
     }
   };
 
-  /* =========================
-     DELETE
-     ========================= */
-  const handleDelete = async () => {
+  const toggleRow = (id) => {
+    setExpandedId(expandedId === id ? null : id);
+  };
+
+  // Triggered when user clicks "Delete" in the tray
+  const openDeleteModal = (e, id) => {
+    e.stopPropagation();
+    setTargetId(id);
+    setShowModal(true);
+  };
+
+  // Triggered when user clicks "Yes" in your Custom Modal
+  const confirmDelete = async () => {
+    setShowModal(false);
+    if (!targetId) return;
+
     try {
-      await deleteEmployee(deleteId);
-      setShowConfirm(false);
+      await deleteEmployee(targetId);
+      setStatusMsg({ type: "success", text: "Employee record removed successfully." });
       fetchData();
+      setTimeout(() => setStatusMsg({ type: "", text: "" }), 3000);
     } catch (err) {
-      alert(
-        err?.response?.data?.message || "Failed to delete employee"
-      );
+      const msg = err.response?.data?.message || "Operation failed.";
+      setStatusMsg({ type: "error", text: msg });
+    } finally {
+      setTargetId(null);
     }
   };
+
+  if (loading) return <div className="loader">Initializing Records...</div>;
 
   return (
     <div className="app-canvas">
-      <header className="page-header">
-        <div className="header-text">
-          <h1>Employee Management</h1>
-          <p>Clean view of your workforce directory</p>
-        </div>
+      {/* Custom Confirmation Modal */}
+      <ConfirmModal 
+        show={showModal}
+        message="Are you sure you want to permanently delete this employee record?"
+        onConfirm={confirmDelete}
+        onCancel={() => setShowModal(false)}
+      />
 
-        <button
-          className="primary-btn"
+      <header className="page-header">
+        <h3>Employee Management</h3>
+        <button 
+          className="primary-btn" 
           onClick={() => navigate("/admin/employees/new")}
         >
-          + Add Employee
+          + Register Employee
         </button>
       </header>
 
-      <section className="dashboard-stats">
-        {Object.entries(activeStats).map(([month, count]) => (
-          <div className="stat-pill" key={month}>
-            <span className="month-label">Month {month}</span>
-            <span className="count-label">{count} Working</span>
-          </div>
-        ))}
-      </section>
-
-      <div className="data-list-container">
-        <div className="list-columns">
-          <span>Employee Name</span>
-          <span>Email</span>
-          <span>Designation</span>
-          <span>Status</span>
-          <span className="text-right">Details</span>
+      {/* Message Box */}
+      {statusMsg.text && (
+        <div className={`status-box ${statusMsg.type}`} style={{ marginBottom: "20px" }}>
+          <span>{statusMsg.text}</span>
+          <button className="close-btn" onClick={() => setStatusMsg({ type: "", text: "" })}>×</button>
         </div>
+      )}
 
-        <div className="scrollable-list-area">
-          {employees.map((emp) => (
-            <div
-              key={emp.empId}
-              className={`list-row-card ${
-                expandedId === emp.empId ? "expanded" : ""
-              }`}
-            >
-              <div
-                className="row-visible"
-                onClick={() =>
-                  setExpandedId(
-                    expandedId === emp.empId ? null : emp.empId
-                  )
-                }
-              >
-                <span className="emp-name">
-                  {emp.firstName} {emp.lastName}
-                </span>
-                <span className="emp-email">{emp.email}</span>
-                <span className="emp-title">
-                  {emp.position?.designationTitle || "N/A"}
-                </span>
-                <span>
-                  <b
-                    className={`status-tag ${
-                      emp.isActive ? "active" : "inactive"
-                    }`}
-                  >
-                    {emp.isActive ? "Working" : "On Leave"}
-                  </b>
-                </span>
-                <span className="text-right">
-                  <button className="details-btn">
-                    {expandedId === emp.empId ? "Hide" : "View"}
-                  </button>
-                </span>
-              </div>
-
-              {expandedId === emp.empId && (
-                <div className="row-hidden-tray">
-                  <div className="details-box">
-                    <div>
-                      <strong>Contact:</strong> {emp.contact}
-                    </div>
-                    <div>
-                      <strong>Education:</strong> {emp.education}
-                    </div>
-                    <div>
-                      <strong>Joined:</strong> {emp.joiningDate}
-                    </div>
-                    <div>
-                      <strong>Address:</strong> {emp.address}
-                    </div>
-                  </div>
-
-                  <div className="action-tray">
-                    <button
-                      className="btn-link edit"
-                      onClick={() =>
-                        navigate(
-                          `/admin/employees/edit/${emp.empId}`
-                        )
-                      }
-                    >
-                      Edit Profile
-                    </button>
-                    <button
-                      className="btn-link delete"
-                      onClick={() => {
-                        setDeleteId(emp.empId);
-                        setShowConfirm(true);
-                      }}
-                    >
-                      Delete Record
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
+      <div className="dashboard-stats">
+        <div className="stat-pill">
+          <span className="month-label">Total Staff</span>
+          <span className="count-label">{employees.length}</span>
+        </div>
+        <div className="stat-pill">
+          <span className="month-label">Active</span>
+          <span className="count-label">
+            {employees.filter(e => e.isActive).length}
+          </span>
         </div>
       </div>
 
-      <ConfirmModal
-        show={showConfirm}
-        message="Are you sure you want to delete this employee?"
-        onConfirm={handleDelete}
-        onCancel={() => setShowConfirm(false)}
-      />
+      <div className="data-list-container">
+        <div className="list-columns">
+          <span>Name</span>
+          <span>Email</span>
+          <span>Department</span>
+          <span>Status</span>
+          <span style={{ textAlign: "right" }}>Details</span>
+        </div>
+
+        <div className="scrollable-list-area">
+          {employees.map((emp) => {
+            const currentId = emp.empId || emp.id;
+
+            return (
+              <div key={currentId} className="list-row-card">
+                <div className="row-visible">
+                  <span style={{ fontWeight: "600" }}>{emp.firstName} {emp.lastName}</span>
+                  <span>{emp.email}</span>
+                  <span>{emp.department?.deptName || "N/A"}</span>
+                  <span>
+                    <span className={`status-tag ${emp.isActive ? "active" : "inactive"}`}>
+                      {emp.isActive ? "Active" : "Inactive"}
+                    </span>
+                  </span>
+                  <div style={{ textAlign: "right" }}>
+                    <button className="details-btn" onClick={() => toggleRow(currentId)}>
+                      {expandedId === currentId ? "Close" : "View"}
+                    </button>
+                  </div>
+                </div>
+
+                {expandedId === currentId && (
+                  <div className="row-hidden-tray">
+                    <div className="details-box">
+                      <div><strong>Contact:</strong> {emp.contact}</div>
+                      <div><strong>Designation:</strong> {emp.position?.designationTitle || "N/A"}</div>
+                      <div><strong>Education:</strong> {emp.education}</div>
+                      <div><strong>Marital Status:</strong> {emp.maritalStatus}</div>
+                      <div style={{ gridColumn: "span 2" }}>
+                          <strong>Address:</strong> {emp.address}
+                      </div>
+                    </div>
+
+                    <div className="action-tray">
+                      <button 
+                        className="btn-link edit" 
+                        onClick={() => navigate(`/admin/employees/edit/${currentId}`)}
+                      >
+                        Edit Profile
+                      </button>
+                      <button 
+                        className="btn-link delete" 
+                        onClick={(e) => openDeleteModal(e, currentId)}
+                      >
+                        Delete Record
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }

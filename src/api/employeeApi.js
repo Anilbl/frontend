@@ -13,3 +13,5 @@ export const updateEmployee = (id, employee) => api.put(`${BASE_URL}/${id}`, emp
 export const deleteEmployee = (id) => api.delete(`${BASE_URL}/${id}`);
 
 export const getActiveEmployeeStats = () => api.get(`${BASE_URL}/stats/active-per-month`);
+// Add these to your employeeApi.js
+export const getEmployeeById = (id) => api.get(`${BASE_URL}/${id}`);

@@ -1,41 +1,74 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import "./EmployeeDashboard.css";
 
 const AttendanceRecords = () => {
-  const [employeeId, setEmployeeId] = useState(15);
+  // 1. Extract dynamic user data from the session created in Landing.jsx
+  const getSession = () => JSON.parse(localStorage.getItem("user_session") || "{}");
+  
+  const [employeeId, setEmployeeId] = useState(getSession().empId || getSession().id || 15);
   const [status, setStatus] = useState("Not Checked In");
   const [loading, setLoading] = useState(false);
   const [history, setHistory] = useState([]);
   const [liveDistance, setLiveDistance] = useState(null);
   const [showSuccess, setShowSuccess] = useState(false);
 
-  const [officeLocation, setOfficeLocation] = useState(null);
-  const ALLOWED_RADIUS_METERS = 10;
+  const OFFICE_LAT = 28.6910; 
+  const OFFICE_LON = 80.5419; 
+  const ALLOWED_RADIUS_METERS = 50; 
+  const AUTO_RESET_HOURS = 10; 
   const API_URL = "http://localhost:8080/api/attendance";
 
-  useEffect(() => {
-    navigator.geolocation.getCurrentPosition((pos) => {
-      setOfficeLocation({ lat: pos.coords.latitude, lon: pos.coords.longitude });
-    });
-    fetchAttendance();
-  }, [employeeId]);
+  // 2. Optimized Token Extraction
+  const getAuthHeader = () => {
+    const session = getSession();
+    const token = session.jwt || session.token; 
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
 
-  const fetchAttendance = async () => {
+  const fetchAttendance = useCallback(async () => {
     try {
-      const res = await axios.get(`${API_URL}/employee/${employeeId}`);
+      const headers = getAuthHeader();
+      const res = await axios.get(`${API_URL}/employee/${employeeId}`, { headers });
+      
       const sorted = res.data.sort((a, b) => new Date(b.attendanceDate) - new Date(a.attendanceDate));
-      setHistory(sorted.slice(0, 5)); // Only show top 5 to fit screen
+      setHistory(sorted.slice(0, 5));
       
       const today = new Date().toLocaleDateString('en-CA');
       const todayRec = sorted.find(r => r.attendanceDate === today);
+      
       if (todayRec) {
-        setStatus(todayRec.checkOutTime ? "Checked Out" : "Checked In");
+        if (todayRec.checkOutTime) {
+          setStatus("Checked Out");
+        } else {
+          // 🔥 10-HOUR AUTO-RESET LOGIC
+          const checkInDate = new Date(todayRec.checkInTime);
+          const currentTime = new Date();
+          const diffInHours = (currentTime - checkInDate) / (1000 * 60 * 60);
+
+          if (diffInHours >= AUTO_RESET_HOURS) {
+            setStatus("Not Checked In"); // Allow new check-in for next shift
+          } else {
+            setStatus("Checked In");
+          }
+        }
       } else {
         setStatus("Not Checked In");
       }
-    } catch (err) { console.error("Update failed"); }
-  };
+    } catch (err) {
+      console.error("Fetch Error:", err.response?.status === 403 ? "Forbidden: Check Backend Roles" : err.message);
+    }
+  }, [employeeId]);
+
+  useEffect(() => {
+    fetchAttendance();
+    const watchId = navigator.geolocation.watchPosition((pos) => {
+      const dist = getDistance(pos.coords.latitude, pos.coords.longitude, OFFICE_LAT, OFFICE_LON);
+      setLiveDistance(dist.toFixed(1));
+    }, (err) => console.error("GPS Error", err), { enableHighAccuracy: true });
+    
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, [fetchAttendance]);
 
   const getDistance = (lat1, lon1, lat2, lon2) => {
     const R = 6371000;
@@ -47,112 +80,119 @@ const AttendanceRecords = () => {
   };
 
   const handleAttendance = async (type) => {
-    if (!officeLocation) return alert("Waiting for GPS...");
+    if (liveDistance > ALLOWED_RADIUS_METERS) {
+      return alert(`Access Denied: You are ${liveDistance}m away. Must be within 50m.`);
+    }
+
     setLoading(true);
-    navigator.geolocation.getCurrentPosition(async (pos) => {
-      const { latitude, longitude } = pos.coords;
-      const distance = getDistance(latitude, longitude, officeLocation.lat, officeLocation.lon);
-      setLiveDistance(distance.toFixed(2));
+    const now = new Date().toISOString();
+    const todayDate = new Date().toLocaleDateString('en-CA');
 
-      if (distance > ALLOWED_RADIUS_METERS) {
-        alert(`Access Denied! You are ${distance.toFixed(2)}m away.`);
-        setLoading(false);
-        return;
+    try {
+      const headers = getAuthHeader();
+      if (type === "in") {
+        await axios.post(API_URL, {
+          employee: { empId: employeeId },
+          attendanceDate: todayDate,
+          checkInTime: now,
+          status: "PRESENT"
+        }, { headers });
+      } else {
+        const todayRec = history.find(r => r.attendanceDate === todayDate);
+        if (!todayRec) throw new Error("No today record found.");
+
+        await axios.put(`${API_URL}/${todayRec.attendanceId}`, { 
+          ...todayRec, 
+          checkOutTime: now 
+        }, { headers });
       }
-
-      const now = new Date();
-      const isoNow = now.toISOString().split('.')[0];
-      const todayDate = now.toLocaleDateString('en-CA');
-
-      try {
-        if (type === "in") {
-          await axios.post(API_URL, {
-            employee: { empId: employeeId },
-            attendanceDate: todayDate,
-            checkInTime: isoNow,
-            inGpsLat: latitude,
-            inGpsLong: longitude
-          });
-        } else {
-          const todayRec = history.find(r => r.attendanceDate === todayDate);
-          await axios.put(`${API_URL}/${todayRec.attendanceId}`, { ...todayRec, checkOutTime: isoNow });
-        }
-        setShowSuccess(true);
-        setTimeout(() => setShowSuccess(false), 3000);
-        await fetchAttendance();
-      } catch (err) {
-        alert("Error: Backend issue");
-      } finally { setLoading(false); }
-    }, () => setLoading(false), { enableHighAccuracy: true });
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
+      fetchAttendance();
+    } catch (err) {
+      const msg = err.response?.status === 403 
+        ? "Access Denied: Your account doesn't have permission to log attendance."
+        : "Session Error: Please re-login.";
+      alert(msg);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="single-page-wrapper">
-      <header className="compact-header">
-        <div className="title-area">
+    <div className="attendance-portal">
+      <header className="portal-header">
+        <div className="title-section">
           <h1>Attendance Portal</h1>
-          {showSuccess && <span className="success-toast">✅ Recorded!</span>}
+          {showSuccess && <div className="toast">Success! Attendance Logged.</div>}
         </div>
-        <div className="header-input">
-          <label>ID:</label>
-          <input type="number" value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} />
+        <div className="id-badge">
+          <span>Employee ID:</span>
+          <input 
+            type="number" 
+            value={employeeId} 
+            onChange={(e) => setEmployeeId(e.target.value)} 
+            disabled // ID should be locked to logged-in user
+          />
         </div>
       </header>
 
-      <main className="dashboard-grid">
-        {/* Left Side: Status & Proximity */}
-        <section className="status-zone">
-          <div className={`status-card ${status.replace(/\s/g, '-')}`}>
-            <span className="label">Current Status</span>
-            <span className="value">{status}</span>
+      <main className="portal-grid">
+        <section className="portal-card status-card">
+          <h3>Current Status</h3>
+          <div className={`status-pill ${status.replace(/\s+/g, '-').toLowerCase()}`}>
+            {status}
           </div>
-          <div className="distance-card">
-            <span className="label">GPS Proximity</span>
-            <span className="value">{liveDistance ? `${liveDistance}m` : "Checking..."}</span>
-            <div className="radar-ping"></div>
+          <hr />
+          <div className="geofence-box">
+            <p>GPS Proximity</p>
+            <h2 className={liveDistance <= ALLOWED_RADIUS_METERS ? "safe" : "danger"}>
+              {liveDistance ? `${liveDistance}m` : "Locating..."}
+            </h2>
+            <small>{liveDistance <= ALLOWED_RADIUS_METERS ? "✓ Within Range" : "⚠ Outside Office Perimeter"}</small>
           </div>
         </section>
 
-        {/* Center: Large Color Buttons */}
-        <section className="action-zone">
+        <section className="portal-card action-card">
           <button 
-            className="action-btn check-in" 
+            className="btn btn-in" 
             onClick={() => handleAttendance("in")} 
             disabled={loading || status !== "Not Checked In"}
           >
-            <span className="icon">📥</span>
-            <span className="btn-text">Check In</span>
+            {loading ? "Processing..." : "Check In"}
           </button>
           
           <button 
-            className="action-btn check-out" 
+            className="btn btn-out" 
             onClick={() => handleAttendance("out")} 
             disabled={loading || status !== "Checked In"}
           >
-            <span className="icon">📤</span>
-            <span className="btn-text">Check Out</span>
+            {loading ? "Processing..." : "Check Out"}
           </button>
         </section>
 
-        {/* Right Side: Mini Table */}
-        <section className="history-zone">
-          <h3>Recent Logs</h3>
-          <div className="mini-table-wrapper">
-            <table className="compact-table">
-              <thead>
-                <tr><th>Date</th><th>In</th><th>Out</th></tr>
-              </thead>
-              <tbody>
-                {history.map(row => (
-                  <tr key={row.attendanceId}>
-                    <td>{row.attendanceDate.split('-').slice(1).join('/')}</td>
-                    <td>{row.checkInTime ? new Date(row.checkInTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : "—"}</td>
-                    <td>{row.checkOutTime ? new Date(row.checkOutTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        <section className="portal-card history-card">
+          <h3>Today's Details & Recent History</h3>
+          <table className="history-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Check In</th>
+                <th>Check Out</th>
+              </tr>
+            </thead>
+            <tbody>
+              {history.length > 0 ? history.map(row => (
+                <tr key={row.attendanceId}>
+                  <td>{row.attendanceDate}</td>
+                  <td>{row.checkInTime ? new Date(row.checkInTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : "—"}</td>
+                  <td>{row.checkOutTime ? new Date(row.checkOutTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : "—"}</td>
+                </tr>
+              )) : (
+                <tr><td colSpan="3">No history found.</td></tr>
+              )}
+            </tbody>
+          </table>
         </section>
       </main>
     </div>

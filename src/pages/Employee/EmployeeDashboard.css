@@ -117,4 +117,73 @@
   animation: slideIn 0.3s;
 }
 
-@keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }:root {
+  --primary: #2563eb;
+  --success: #10b981;
+  --danger: #ef4444;
+  --bg-main: #f1f5f9;
+  --text-main: #1e293b;
+}
+
+.attendance-portal {
+  background: var(--bg-main);
+  min-height: 100vh;
+  padding: 2rem;
+  font-family: 'Segoe UI', sans-serif;
+  color: var(--text-main);
+}
+
+.portal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.portal-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.5fr;
+  gap: 1.5rem;
+}
+
+.portal-card {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
+
+/* Status UI */
+.status-pill {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-weight: bold;
+  margin: 1rem 0;
+}
+.not-checked-in { background: #fee2e2; color: #b91c1c; }
+.checked-in { background: #dcfce7; color: #15803d; }
+
+/* Action Buttons */
+.btn {
+  width: 100%;
+  padding: 1.2rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 1rem;
+  transition: transform 0.2s;
+}
+.btn-in { background: var(--success); color: white; }
+.btn-out { background: var(--danger); color: white; }
+.btn:disabled { background: #cbd5e1; cursor: not-allowed; }
+
+/* History Table */
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.history-table th { text-align: left; padding: 0.8rem; border-bottom: 2px solid #f1f5f9; }
+.history-table td { padding: 0.8rem; border-bottom: 1px solid #f1f5f9; }
