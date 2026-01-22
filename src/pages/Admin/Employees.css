@@ -1,194 +1,141 @@
-/* Container forces the view to fit exactly inside the window */
-.app-canvas {
-  height: 100vh;
+/* Main Layout - Lock to Screen */
+.app-canvas.professional-view {
+  height: calc(100vh - 80px);
   display: flex;
   flex-direction: column;
-  padding: 0 40px;
-  background-color: #fcfdfe;
-  overflow: hidden; /* Totally removes outer scrollbar */
+  padding: 10px 20px;
+  background-color: #f8fafc;
+  overflow: hidden; /* NO SCROLLBARS */
 }
 
-.page-header {
-  padding: 30px 0;
+/* Header Centering */
+.page-header.compact {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 12px;
+  flex-shrink: 0;
+  position: relative;
 }
 
-.primary-btn {
-  background: #10b981;
-  color: white;
-  border: none;
-  padding: 10px 24px;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: opacity 0.2s;
+.centered-title {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #1e293b;
 }
 
-.primary-btn:hover { opacity: 0.9; }
-
-/* Horizontal Stats */
-.dashboard-stats {
-  display: flex;
-  gap: 15px;
-  margin-bottom: 25px;
-}
-
-.stat-pill {
+/* Table Container - Shrinks to fit content */
+.data-list-container.no-scroll-container {
   background: white;
-  padding: 12px 20px;
   border-radius: 10px;
-  border: 1px solid #eef2f6;
+  border: 1px solid #e2e8f0;
   display: flex;
   flex-direction: column;
-  flex: 1;
-}
-
-.month-label { font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; }
-.count-label { font-size: 1rem; font-weight: 700; color: #1e293b; }
-
-/* The Data Area */
-.data-list-container {
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
+  max-height: 100%; /* Prevents overflowing screen */
   overflow: hidden;
 }
 
 .list-columns {
   display: grid;
-  grid-template-columns: 2fr 2fr 1.5fr 1fr 100px;
-  padding: 10px 20px;
-  color: #64748b;
-  font-size: 0.85rem;
-  font-weight: 600;
+  grid-template-columns: 1.5fr 2fr 1.5fr 1fr 100px;
+  padding: 12px 20px;
+  background: #f1f5f9;
+  font-weight: 700;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  border-bottom: 1px solid #e2e8f0;
 }
 
-.scrollable-list-area {
-  flex-grow: 1;
-  overflow-y: auto;
-  padding-right: 5px;
-}
-
-.scrollable-list-area::-webkit-scrollbar { width: 0; }
-
-.list-row-card {
-  background: white;
-  border: 1px solid #f1f5f9;
-  border-radius: 12px;
-  margin-bottom: 8px;
-}
-
+/* Row Styling */
 .row-visible {
   display: grid;
-  grid-template-columns: 2fr 2fr 1.5fr 1fr 100px;
-  padding: 18px 20px;
+  grid-template-columns: 1.5fr 2fr 1.5fr 1fr 100px;
+  padding: 10px 20px;
   align-items: center;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.85rem;
   cursor: pointer;
+  background: white;
 }
 
+.row-visible:hover { background: #fcfdfe; }
+
+.bold { font-weight: 600; color: #1e293b; }
+
+/* Restored Tray Features */
 .row-hidden-tray {
-  padding: 20px;
   background: #f8fafc;
-  border-top: 1px solid #f1f5f9;
-  border-radius: 0 0 12px 12px;
+  padding: 15px 20px;
+  border-bottom: 1px solid #e2e8f0;
+  animation: slideIn 0.2s ease-out;
 }
 
-.details-box {
+.details-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 15px;
-  font-size: 0.9rem;
-  color: #334155;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  font-size: 0.8rem;
 }
 
-.action-tray {
-  margin-top: 20px;
+.tray-actions {
+  grid-column: span 3;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #e2e8f0;
   display: flex;
   gap: 20px;
-  border-top: 1px solid #e2e8f0;
-  padding-top: 15px;
 }
 
-.btn-link {
-  background: none;
-  border: none;
-  font-weight: 600;
-  cursor: pointer;
-  font-size: 0.85rem;
+/* Updated Pagination Positioning */
+.pagination-footer {
+  margin-top: auto; /* Pushes footer to the bottom of the container */
+  height: 45px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 20px;
+  background: white;
+  border-top: 1px solid #e2e8f0;
+  flex-shrink: 0;
 }
-.btn-link.edit { color: #2563eb; }
-.btn-link.delete { color: #dc2626; }
+
+/* Buttons and Tags */
+.view-btn {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.action-link { background: none; border: none; font-weight: 600; cursor: pointer; font-size: 0.8rem; }
+.action-link.edit { color: #2563eb; }
+.action-link.delete { color: #dc2626; }
 
 .status-tag {
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: 700;
 }
 .status-tag.active { background: #dcfce7; color: #166534; }
 .status-tag.inactive { background: #fee2e2; color: #991b1b; }
 
-.details-btn {
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
-  padding: 4px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-/* ============================================================
-   NEW: FORM STYLING (For Edit Profile / Add Employee)
-   ============================================================ */
-.employee-form-container {
-  background: white;
-  padding: 30px;
-  border-radius: 15px;
-  border: 1px solid #eef2f6;
-  max-width: 800px;
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-}
-
-.input-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.input-group label {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #64748b;
-}
-
-.input-group input, .input-group select {
-  padding: 10px;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  outline: none;
-  transition: border-color 0.2s;
-}
-
-.input-group input:focus { border-color: #10b981; }
-
-.form-footer {
-  margin-top: 30px;
-  display: flex;
-  justify-content: flex-end;
-  gap: 15px;
-}
-
-.secondary-btn {
-  background: #f1f5f9;
-  color: #475569;
+.primary-btn {
+  background: #10b981;
+  color: white;
   border: none;
-  padding: 10px 24px;
-  border-radius: 8px;
+  padding: 7px 15px;
+  border-radius: 6px;
   font-weight: 600;
   cursor: pointer;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
 }
