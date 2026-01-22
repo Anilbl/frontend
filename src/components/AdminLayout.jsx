@@ -12,6 +12,7 @@ const AdminLayout = () => {
 
   const menuItems = [
     { path: "dashboard", label: "Dashboard", icon: "🏠" },
+    { path: "users", label: "Users", icon: "👤" }, // Added User Module here
     { path: "employees", label: "Employees", icon: "👥" },
     { path: "attendance", label: "Attendance", icon: "📅" },
     { path: "leave", label: "Leave Requests", icon: "📝" },

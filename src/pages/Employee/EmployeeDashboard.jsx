@@ -1,71 +1,80 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 import "./EmployeeDashboard.css";
 
+// --- REMOVED THE DUPLICATE IMPORTS THAT WERE HERE ---
+
 const EmployeeDashboard = () => {
-  // Mock data - in a real app, this comes from your Auth session or API
+  const [employeeInfo, setEmployeeInfo] = useState({
+    name: "Employee",
+    role: "Staff Member",
+    attendance: "0%",
+    leaveBalance: "0 Days",
+    lastSalary: "Rs. 0"
+  });
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const sessionData = localStorage.getItem("user_session");
+        if (!sessionData) return;
+
+        const session = JSON.parse(sessionData);
+        const id = session.userId;
+        const token = session.token;
+
+        if (!id) {
+          console.error("CRITICAL: userId missing from session.");
+          return;
+        }
+
+        // Endpoint matching the fixed Controller below
+        const response = await axios.get(`http://localhost:8080/api/employee/dashboard/stats/${id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        setEmployeeInfo({
+          name: session.username || "Employee",
+          role: session.role || "Staff Member",
+          attendance: response.data.attendanceRate || "0%",
+          leaveBalance: `${response.data.remainingLeaves} Days`,
+          lastSalary: `Rs. ${response.data.lastSalary}`
+        });
+      } catch (error) {
+        console.error("Dashboard fetch failed:", error);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
   const stats = [
-    { label: "Attendance", value: "98%", icon: "🕒", trend: "+2% from last month" },
-    { label: "Leave Balance", value: "12 Days", icon: "📝", trend: "Refreshes in 3 months" },
-    { label: "Net Salary", value: "Rs. 45,000", icon: "💰", trend: "Latest: Dec 2024" },
+    { label: "Attendance", value: employeeInfo.attendance, icon: "🕒", color: "#4f46e5" },
+    { label: "Leave Balance", value: employeeInfo.leaveBalance, icon: "📝", color: "#0891b2" },
+    { label: "Net Salary", value: employeeInfo.lastSalary, icon: "💰", color: "#059669" },
   ];
 
   return (
-    <div className="dashboard-content">
-      {/* Header Section */}
-      <header className="dashboard-header">
-        <div className="welcome-text">
-          <h1>Welcome Back, John! 👋</h1>
-          <p>You have 2 pending leave approvals and your latest payslip is ready.</p>
+    <div className="dashboard-content-wrapper">
+      <header className="dashboard-welcome-header">
+        <div className="greeting-box">
+          <h1>Welcome Back, {employeeInfo.name}! 👋</h1>
+          <p>Here is your real-time performance and payroll summary.</p>
         </div>
       </header>
 
-      {/* Stats Overview */}
-      <div className="stats-grid">
+      <div className="stats-row">
         {stats.map((stat, index) => (
-          <div key={index} className="stat-card">
-            <div className="stat-icon">{stat.icon}</div>
-            <div className="stat-info">
-              <span className="stat-label">{stat.label}</span>
-              <span className="stat-value">{stat.value}</span>
-              <span className="stat-trend">{stat.trend}</span>
+          <div key={index} className="status-kpi-card">
+            <div className="kpi-icon-container" style={{ color: stat.color, backgroundColor: `${stat.color}15` }}>
+              {stat.icon}
+            </div>
+            <div className="kpi-data">
+              <span className="kpi-label">{stat.label}</span>
+              <h2 className="kpi-value">{stat.value}</h2>
             </div>
           </div>
         ))}
-      </div>
-
-      {/* Main Actions Area */}
-      <div className="actions-section">
-        <h2>Quick Actions</h2>
-        <div className="action-grid">
-          <button className="action-tile">
-            <span className="tile-icon">⏰</span>
-            <div>
-              <h3>Clock-in / Out</h3>
-              <p>Record your daily attendance</p>
-            </div>
-          </button>
-          <button className="action-tile">
-            <span className="tile-icon">📅</span>
-            <div>
-              <h3>Apply for Leave</h3>
-              <p>Request time off or sick leave</p>
-            </div>
-          </button>
-          <button className="action-tile">
-            <span className="tile-icon">📄</span>
-            <div>
-              <h3>View Payslip</h3>
-              <p>Download salary breakdowns</p>
-            </div>
-          </button>
-          <button className="action-tile">
-            <span className="tile-icon">⚙️</span>
-            <div>
-              <h3>Profile Settings</h3>
-              <p>Update personal information</p>
-            </div>
-          </button>
-        </div>
       </div>
     </div>
   );

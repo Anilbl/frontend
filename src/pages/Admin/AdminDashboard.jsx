@@ -10,7 +10,6 @@ const AdminDashboard = () => {
   });
   const [recentAttendance, setRecentAttendance] = useState([]);
 
-  // Formats bulky ISO strings into professional time (e.g., 02:45 pm)
   const formatTime = (timeString) => {
     if (!timeString) return "---";
     try {
@@ -24,22 +23,25 @@ const AdminDashboard = () => {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        // Fetch top stats cards
-        const statsRes = await axios.get('http://localhost:8080/api/dashboard/stats');
+        const session = JSON.parse(localStorage.getItem("user_session") || "{}");
+        const token = session.jwt || session.token;
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+        const statsRes = await axios.get('http://localhost:8080/api/dashboard/admin/stats', { headers });
         setStats({
           totalWorkforce: statsRes.data.totalWorkforce,
           dailyAttendance: statsRes.data.dailyAttendance,
           leaveRequests: statsRes.data.leaveRequests.toString().padStart(2, '0')
         });
 
-        // Fetch today's attendance records
-        const attendanceRes = await axios.get('http://localhost:8080/api/dashboard/recent-attendance');
+        const attendanceRes = await axios.get('http://localhost:8080/api/dashboard/recent-attendance', { headers });
         setRecentAttendance(attendanceRes.data); 
 
       } catch (error) {
         console.error("Dashboard failed to fetch data:", error);
       }
     };
+
     fetchDashboardData();
   }, []);
 
@@ -81,22 +83,43 @@ const AdminDashboard = () => {
                   <th>Designation</th>
                   <th>Check-In Time</th>
                   <th>Status</th>
+                  <th>Location (GPS)</th>
                 </tr>
               </thead>
               <tbody>
                 {recentAttendance.length > 0 ? (
-                  recentAttendance.map((record, index) => (
-                    <tr key={index}>
-                      <td>{record.employee.firstName} {record.employee.lastName}</td>
-                      {/* Accessing Employee -> Position (Designation object) -> designationTitle */}
-                      <td>{record.employee.position?.designationTitle || "N/A"}</td>
-                      <td className="time-cell">{formatTime(record.checkInTime)}</td>
-                      <td><span className="status-badge present">Present</span></td>
-                    </tr>
-                  ))
+                  recentAttendance
+                    /* REQUIRED CODE ADDED BELOW: Filters out employees where isActive is false */
+                    .filter(record => record.employee && record.employee.isActive !== false)
+                    .map((record, index) => (
+                      <tr key={index}>
+                        <td>{record.employee.firstName} {record.employee.lastName}</td>
+                        <td>{record.employee.position?.designationTitle || "Staff"}</td>
+                        <td className="time-cell">{formatTime(record.checkInTime)}</td>
+                        <td>
+                           <span className={`status-badge ${record.status?.toLowerCase() || 'present'}`}>
+                              {record.status || "PRESENT"}
+                           </span>
+                        </td>
+                        <td>
+                          {record.inGpsLat && record.inGpsLong ? (
+                              <a 
+                                  href={`https://www.google.com/maps?q=${record.inGpsLat},${record.inGpsLong}`} 
+                                  target="_blank" 
+                                  rel="noreferrer"
+                                  style={{ color: '#007bff', fontWeight: 'bold', textDecoration: 'none' }}
+                              >
+                                  📍 View Map
+                              </a>
+                          ) : (
+                              <span style={{ color: '#999' }}>{record.workLocation || "No Location"}</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))
                 ) : (
                   <tr>
-                    <td colSpan="4" className="no-data">No attendance recorded today</td>
+                    <td colSpan="5" className="no-data">No attendance recorded today</td>
                   </tr>
                 )}
               </tbody>

@@ -1,22 +1,12 @@
-import axios from "axios";
+import api from "./axios";
 
-const API_URL = "http://localhost:8080/api/roles";
+// Fetch all roles (Used for the dropdown)
+export const getRoles = () => api.get("/roles");
 
-export const getRoles = async () => {
-    const response = await axios.get(API_URL);
-    return response.data;
-};
+export const getRoleById = (id) => api.get(`/roles/${id}`);
 
-export const createRole = async (role) => {
-    const response = await axios.post(API_URL, role);
-    return response.data;
-};
+export const createRole = (roleData) => api.post("/roles", roleData);
 
-export const updateRole = async (id, role) => {
-    const response = await axios.put(`${API_URL}/${id}`, role);
-    return response.data;
-};
+export const updateRole = (id, roleData) => api.put(`/roles/${id}`, roleData);
 
-export const deleteRole = async (id) => {
-    await axios.delete(`${API_URL}/${id}`);
-};
+export const deleteRole = (id) => api.delete(`/roles/${id}`);

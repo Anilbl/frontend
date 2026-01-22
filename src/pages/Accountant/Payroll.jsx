@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+// FIXED: Using your authenticated instance from src/api/axios.js
+import api from "../../api/axios"; 
 import './Payroll.css';
 
 const AccountantPayroll = () => {
@@ -13,7 +14,8 @@ const AccountantPayroll = () => {
 
   const fetchData = async () => {
     try {
-      const res = await axios.get('http://localhost:8080/api/payrolls');
+      // Logic: Uses interceptor to automatically add the Bearer token
+      const res = await api.get('/payrolls'); 
       setPayrolls(res.data);
     } catch (err) {
       console.error("System Error: Connection to backend failed.", err);
@@ -26,12 +28,12 @@ const AccountantPayroll = () => {
     const fullName = `${firstName} ${lastName || ""}`.trim();
     if (window.confirm(`Confirm financial verification for ${fullName}?`)) {
       try {
-        // Logic: Send PUT request to the new endpoint in PayrollController.java
-        await axios.put(`http://localhost:8080/api/payrolls/${id}/status`, { 
+        // Logic: Send authenticated PUT request
+        await api.put(`/payrolls/${id}/status`, { 
           status: "VERIFIED" 
         });
         alert(`Success: ${fullName}'s record verified.`);
-        fetchData(); // Refresh the table to show "Verified" status
+        fetchData(); 
       } catch (err) {
         console.error("Verification failed:", err);
         alert("Action Failed: Could not reach the server. Ensure the Backend is running.");
@@ -101,7 +103,6 @@ const AccountantPayroll = () => {
                     <td className="id-col">#{p.empId || p.payrollId}</td>
                     <td>
                       <div className="name-stack">
-                        {/* Fix: Separated Name and Staff text */}
                         <span className="full-name">{fName} {lName}</span>
                         <span className="role-sub-label">Permanent Staff</span>
                       </div>

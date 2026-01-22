@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+// IMPORT FIX: We must use the custom 'api' instance to include the JWT token
+import api from "../../api/axios"; 
 import './AccountantDashboard.css';
 
 const AccountantDashboard = () => {
@@ -11,18 +12,29 @@ const AccountantDashboard = () => {
   });
 
   useEffect(() => {
-    // Fetch critical metrics from the backend
-    axios.get('http://localhost:8080/api/salary-summary/command-center')
+    // LOGIC FIX: 
+    // 1. Use 'api' instead of 'axios' so the Authorization header is attached.
+    // 2. Use the relative path '/salary-summary/command-center' 
+    //    because your api config already defines 'http://localhost:8080/api' as the baseURL.
+    api.get('/salary-summary/command-center')
       .then(res => {
+        // res.data will now contain the metrics from the backend
         setMetrics(res.data);
       })
       .catch(err => {
         console.error("Dashboard data fetch failed:", err);
+        setMetrics(prev => ({ ...prev, payrollStatus: "Fetch Error" }));
       });
   }, []);
 
-  // Formatter for "Rs. 4.2M" style
-  const formatM = (num) => `Rs. ${(num / 1000000).toFixed(1)}M`;
+  /**
+   * Formatter for currency display
+   * Added a check to prevent errors if monthlyPayrollTotal is undefined
+   */
+  const formatM = (num) => {
+    if (num === undefined || num === null || isNaN(num)) return "Rs. 0.0M";
+    return `Rs. ${(num / 1000000).toFixed(1)}M`;
+  };
 
   return (
     <div className="pro-dash-content">
@@ -84,8 +96,6 @@ const AccountantDashboard = () => {
           </div>
         </div>
       </section>
-
-      {/* Management Portals Section has been removed to keep focus on reporting */}
     </div>
   );
 };

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+// IMPORT FIX: Use your custom api instance to automatically include the JWT token
+import api from "../../api/axios"; 
 import './Salary.css';
 
 const Salary = () => {
@@ -13,26 +14,27 @@ const Salary = () => {
   useEffect(() => {
     const fetchSummary = async () => {
       try {
-        // Retrieve token from storage (set during login)
-        const token = localStorage.getItem('token'); 
-        
-        // Updated URL to match the Controller: /api/payrolls/summary
-        const res = await axios.get('http://localhost:8080/api/payrolls/summary', {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
+        /**
+         * LOGIC FIX: 
+         * By using 'api' instead of 'axios', we no longer need to manually 
+         * pull the token here. Your api/axios.js interceptor handles it.
+         * We use the relative path '/payrolls/summary'.
+         */
+        const res = await api.get('/payrolls/summary');
         setStats(res.data);
       } catch (err) {
         console.error("Error loading payroll data:", err);
-        // If server is 403, it means the JWT token is missing or expired
       }
     };
 
     fetchSummary();
   }, []);
 
-  const formatM = (num) => `Rs. ${(num / 1000000).toFixed(2)}M`;
+  // Formatter for "Rs. 4.20M" style
+  const formatM = (num) => {
+    if (!num || isNaN(num)) return "Rs. 0.00M";
+    return `Rs. ${(num / 1000000).toFixed(2)}M`;
+  };
 
   return (
     <div className="prof-container">
@@ -66,12 +68,15 @@ const Salary = () => {
               <div key={i} className="dept-row">
                 <div className="dept-info">
                   <h4>{d.name}</h4>
-                  <p>Net Distribution: <strong>Rs. {d.net.toLocaleString()}</strong></p>
+                  <p>Net Distribution: <strong>Rs. {d.net?.toLocaleString() || 0}</strong></p>
                 </div>
                 <div className="dept-progress-container">
-                  <div className="progress-label">Tax (1%): Rs. {d.tax.toLocaleString()}</div>
+                  <div className="progress-label">Tax (1%): Rs. {d.tax?.toLocaleString() || 0}</div>
                   <div className="progress-bar">
-                    <div className="fill" style={{ width: `${(d.net / (d.net + d.tax)) * 100}%` }}></div>
+                    <div 
+                      className="fill" 
+                      style={{ width: `${d.net ? (d.net / (d.net + d.tax)) * 100 : 0}%` }}
+                    ></div>
                   </div>
                 </div>
               </div>

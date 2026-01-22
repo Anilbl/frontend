@@ -1,120 +1,172 @@
-:root {
-  --bg-color: #f1f5f9;
-  --checkin-color: #10b981;
-  --checkout-color: #f43f5e;
-  --card-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+.dashboard-content-wrapper {
+  padding: 0 2rem 2rem 2rem;
+  background-color: #f8fafc;
+  min-height: 100vh;
+  font-family: 'Inter', system-ui, sans-serif;
 }
 
-.single-page-wrapper {
-  height: 100vh;
-  background-color: var(--bg-color);
+
+
+.profile-settings-nav {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.profile-settings-nav:hover {
+  background-color: #f1f5f9;
+}
+
+.nav-avatar {
+  width: 40px;
+  height: 40px;
+  background-color: #4f46e5;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+.nav-user-info {
   display: flex;
   flex-direction: column;
-  padding: 1.5rem;
-  box-sizing: border-box;
-  overflow: hidden; /* Prevents scrolling */
 }
 
-.compact-header {
+.nav-name {
+  font-weight: 600;
+  color: #1e293b;
+  font-size: 0.95rem;
+}
+
+.nav-settings-link {
+  font-size: 0.75rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.nav-date-display {
+  font-size: 0.9rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* Greeting Header */
+.dashboard-welcome-header h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 0.25rem;
+}
+
+/* Professional KPI Cards (Unchanged as requested) */
+.stats-row {
+  display: flex;
+  gap: 1.5rem;
+  margin: 2rem 0;
+  flex-wrap: wrap;
+}
+
+.status-kpi-card {
+  flex: 1;
+  min-width: 280px;
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  border: 1px solid #f1f5f9;
+}
+
+.kpi-icon-container {
+  width: 52px;
+  height: 52px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+}
+
+.kpi-label { font-size: 0.875rem; color: #64748b; font-weight: 500; }
+.kpi-value { font-size: 1.5rem; font-weight: 700; color: #0f172a; margin-top: 2px; }
+
+@keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }:root {
+  --primary: #2563eb;
+  --success: #10b981;
+  --danger: #ef4444;
+  --bg-main: #f1f5f9;
+  --text-main: #1e293b;
+}
+
+.attendance-portal {
+  background: var(--bg-main);
+  min-height: 100vh;
+  padding: 2rem;
+  font-family: 'Segoe UI', sans-serif;
+  color: var(--text-main);
+}
+
+.portal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem;
 }
 
-.compact-header h1 { font-size: 1.5rem; color: #1e293b; margin: 0; }
-
-.header-input input {
-  width: 60px;
-  padding: 5px;
-  border-radius: 6px;
-  border: 1px solid #cbd5e1;
-  margin-left: 10px;
-  font-weight: bold;
-}
-
-/* Dashboard Grid */
-.dashboard-grid {
+.portal-grid {
   display: grid;
-  grid-template-columns: 1fr 1.5fr 1.2fr;
+  grid-template-columns: 1fr 1fr 1.5fr;
   gap: 1.5rem;
-  flex: 1; /* Takes up remaining height */
 }
 
-/* Status Zone */
-.status-zone { display: flex; flex-direction: column; gap: 1rem; }
-
-.status-card, .distance-card {
+.portal-card {
   background: white;
   padding: 1.5rem;
-  border-radius: 1rem;
-  box-shadow: var(--card-shadow);
-  display: flex;
-  flex-direction: column;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
 }
 
-.label { font-size: 0.8rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
-.value { font-size: 1.5rem; font-weight: 800; color: #1e293b; margin-top: 5px; }
-
-/* Color States for Status */
-.status-card.Checked-In .value { color: var(--checkin-color); }
-.status-card.Checked-Out .value { color: var(--checkout-color); }
+/* Status UI */
+.status-pill {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-weight: bold;
+  margin: 1rem 0;
+}
+.not-checked-in { background: #fee2e2; color: #b91c1c; }
+.checked-in { background: #dcfce7; color: #15803d; }
 
 /* Action Buttons */
-.action-zone {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.action-btn {
-  flex: 1;
+.btn {
+  width: 100%;
+  padding: 1.2rem;
   border: none;
-  border-radius: 1.5rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
   cursor: pointer;
-  transition: transform 0.2s, filter 0.2s;
-  box-shadow: var(--card-shadow);
+  margin-bottom: 1rem;
+  transition: transform 0.2s;
 }
-
-.action-btn .icon { font-size: 3rem; margin-bottom: 10px; }
-.action-btn .btn-text { font-size: 1.25rem; font-weight: 700; color: white; }
-
-.check-in { background: var(--checkin-color); }
-.check-out { background: var(--checkout-color); }
-
-.action-btn:hover:not(:disabled) { transform: scale(1.02); filter: brightness(1.1); }
-.action-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.btn-in { background: var(--success); color: white; }
+.btn-out { background: var(--danger); color: white; }
+.btn:disabled { background: #cbd5e1; cursor: not-allowed; }
 
 /* History Table */
-.history-zone {
-  background: white;
-  border-radius: 1rem;
-  padding: 1rem;
-  box-shadow: var(--card-shadow);
-  display: flex;
-  flex-direction: column;
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
 }
-
-.history-zone h3 { margin: 0 0 1rem 0; font-size: 1rem; }
-.mini-table-wrapper { overflow-y: auto; flex: 1; }
-
-.compact-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-.compact-table th { text-align: left; color: #94a3b8; padding: 8px; border-bottom: 1px solid #f1f5f9; }
-.compact-table td { padding: 12px 8px; border-bottom: 1px solid #f8fafc; }
-
-/* Success Toast Animation */
-.success-toast {
-  background: #dcfce7;
-  color: #166534;
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: bold;
-  animation: slideIn 0.3s;
-}
-
-@keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+.history-table th { text-align: left; padding: 0.8rem; border-bottom: 2px solid #f1f5f9; }
+.history-table td { padding: 0.8rem; border-bottom: 1px solid #f1f5f9; }

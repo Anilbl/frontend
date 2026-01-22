@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+// FIXED: Use the authenticated instance from src/api/axios.js
+import api from "../../api/axios"; 
 import './Tax.css';
 
 const Tax = () => {
@@ -25,7 +26,8 @@ const Tax = () => {
 
   const fetchSlabs = async () => {
     try {
-      const response = await axios.get('http://localhost:8080/api/tax-slabs');
+      // Logic: Use authenticated 'api' instance
+      const response = await api.get('/tax-slabs');
       setTaxSlabs(response.data);
     } catch (error) {
       console.error("Error fetching slabs:", error);
@@ -37,12 +39,13 @@ const Tax = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('http://localhost:8080/api/tax-slabs', formData);
+      // Logic: Use authenticated 'api' instance for POST
+      await api.post('/tax-slabs', formData);
       setShowModal(false);
       fetchSlabs(); 
       setFormData(initialFormState);
     } catch (error) {
-      alert("Error: Database rejected the entry.");
+      alert("Error: Database rejected the entry. Ensure you have proper permissions.");
     }
   };
 
@@ -51,9 +54,6 @@ const Tax = () => {
     setFormData({ ...formData, [name]: value });
   };
 
-  // UPDATED FILTER LOGIC:
-  // This ensures that if the status is missing or 'Single', it goes to the Single tab.
-  // It only shows 'Couple' data in the Couple tab.
   const filteredSlabs = taxSlabs.filter(slab => {
     const status = slab.taxpayerStatus || 'Single';
     return status === activeTab;

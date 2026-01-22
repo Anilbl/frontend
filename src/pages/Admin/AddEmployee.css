@@ -1,63 +1,121 @@
 .registration-canvas {
-  height: calc(100vh - 120px);
+  min-height: calc(100vh - 100px);
   display: flex;
   justify-content: center;
-  align-items: center;
-  overflow: hidden; /* Removes scrollbar */
+  padding: 40px 20px;
+  background-color: #f8fafc; /* Light slate background */
 }
 
 .form-card {
   background: white;
-  width: 95%;
-  max-width: 720px;
-  padding: 10px 25px;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+  width: 100%;
+  max-width: 850px;
+  padding: 40px;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
 }
 
-.form-header h3 { margin: 0; font-size: 1rem; color: #1e293b; }
-.form-header p { margin: 2px 0 10px; font-size: 9.5px; color: #64748b; }
+.form-header {
+  margin-bottom: 30px;
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 20px;
+}
 
+.form-header h3 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.form-header p {
+  font-size: 14px;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+/* Professional Grid */
 .compact-grid-form {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px 20px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
 }
 
-.input-group label { font-weight: 600; font-size: 10px; margin-bottom: 2px; color: #475569; }
-.input-group input, .input-group select, .input-group textarea {
-  padding: 5px 10px;
-  border: 1px solid #cbd5e1;
-  border-radius: 4px;
-  font-size: 11px;
+.input-group.full-width {
+  grid-column: span 2;
 }
 
-.input-group textarea { height: 32px; resize: none; }
+.input-group label {
+  display: block;
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 8px;
+  color: #334155;
+}
+
+.input-group input, 
+.input-group select, 
+.input-group textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  background-color: #ffffff;
+  color: #1e293b;
+}
+
+.input-group input:focus, 
+.input-group select:focus, 
+.input-group textarea:focus {
+  outline: none;
+  border-color: #10b981;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
+}
+
+.input-group textarea {
+  height: 100px; /* Better height for addresses */
+  resize: vertical;
+}
 
 .form-footer {
-  margin-top: 12px;
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid #f1f5f9;
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
+  gap: 12px;
 }
 
 .btn-register {
-  background: #10b981; /* Green */
+  background: #10b981;
   color: white;
   border: none;
-  padding: 7px 22px;
-  border-radius: 4px;
-  font-weight: 700;
-  font-size: 11px;
+  padding: 12px 32px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
   cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-register:hover {
+  background: #059669;
 }
 
 .btn-cancel {
-  background: #f1f5f9;
-  color: #475569;
-  padding: 7px 22px;
-  border: 1px solid #e2e8f0;
-  border-radius: 4px;
-  font-size: 11px;
+  background: white;
+  color: #64748b;
+  padding: 12px 32px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
   cursor: pointer;
+}
+
+.btn-cancel:hover {
+  background: #f8fafc;
+  color: #0f172a;
 }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from "../../api/axios"; 
 import './Report.css';
 
 const Report = () => {
@@ -13,57 +13,56 @@ const Report = () => {
     { title: "Employee History", desc: "Individual payroll and increment archives", icon: "👤" }
   ];
 
-  useEffect(() => {
-    fetchHistory();
-  }, []);
+  useEffect(() => { fetchHistory(); }, []);
 
   const fetchHistory = async () => {
     try {
-      const res = await axios.get('http://localhost:8080/api/reports/history');
+      const res = await api.get('/reports/history');
       setRecentReports(res.data);
     } catch (err) {
-      console.error("Failed to load reports history:", err);
+      console.error("Failed to load history:", err);
     }
   };
 
   const handleGenerate = async (category) => {
     setIsGenerating(true);
     try {
-      // Pass the full category name so backend can branch logic
-      await axios.post(`http://localhost:8080/api/reports/generate?category=${category}`);
+      await api.post(`/reports/generate?category=${encodeURIComponent(category)}`);
       fetchHistory(); 
+      alert(`Success: ${category} generated in User/Payroll_Reports folder.`);
     } catch (err) {
-      alert("Error generating report. Please check if the backend is running.");
-    } finally {
-      setIsGenerating(false);
-    }
+      alert("Generation failed. Check if your Backend console shows path errors.");
+    } finally { setIsGenerating(false); }
   };
 
   const handleDownload = async (reportId, fileName) => {
     try {
-      const response = await axios.get(`http://localhost:8080/api/reports/download/${reportId}`, {
-        responseType: 'blob',
+      // Logic: request binary data
+      const response = await api.get(`/reports/download/${reportId}`, { 
+        responseType: 'blob' 
       });
 
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      // VALIDATE: Check if we actually received data
+      if (response.data.size === 0) {
+        alert("The file on the server is empty. Please generate a new one.");
+        return;
+      }
+
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', fileName); 
+      link.setAttribute('download', fileName || `Report.pdf`); 
       document.body.appendChild(link);
       link.click();
       
-      link.parentNode.removeChild(link);
+      link.remove();
       window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error("Download failed:", error);
-      alert("File download failed.");
+    } catch (error) { 
+      // Triggered if Backend returns 404 (file missing on disk)
+      alert("Download failed. The physical file is missing on the server's drive."); 
     }
-  };
-
-  const formatDateTime = (dateString) => {
-    if (!dateString) return "N/A";
-    const date = new Date(dateString);
-    return date.toLocaleDateString() + ' | ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
   return (
@@ -80,11 +79,7 @@ const Report = () => {
             <div className="report-details">
               <h4>{cat.title}</h4>
               <p>{cat.desc}</p>
-              <button 
-                className="generate-btn" 
-                onClick={() => handleGenerate(cat.title)} 
-                disabled={isGenerating}
-              >
+              <button className="generate-btn" onClick={() => handleGenerate(cat.title)} disabled={isGenerating}>
                 {isGenerating ? "Processing..." : "Generate Report"}
               </button>
             </div>
@@ -105,41 +100,22 @@ const Report = () => {
           </thead>
           <tbody>
             {recentReports.length > 0 ? (
-              recentReports.map((file, index) => {
-                // Normalize category name for CSS (e.g., "Tax & SSF Reports" -> "taxssfreports")
-                const categoryClass = file.category.toLowerCase().replace(/[^a-z]/g, '');
-                
-                return (
-                  <tr key={index}>
-                    <td className="file-name-cell">
-                      📄 {file.fileName} 
-                      <span style={{color: '#94a3b8', fontSize: '0.7rem', marginLeft: '10px'}}>
-                        {file.fileSize || '15 KB'}
-                      </span>
-                    </td>
-                    <td>
-                      <span className={`type-badge ${categoryClass}`}>
-                        {file.category}
-                      </span>
-                    </td>
-                    <td className="time-stamp">{formatDateTime(file.dateGenerated)}</td>
-                    <td>
-                      <button 
-                        className="download-btn-ui" 
-                        onClick={() => handleDownload(file.reportId, file.fileName)}
-                      >
-                        Download
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })
+              recentReports.map((file, index) => (
+                <tr key={index}>
+                  <td className="file-name-cell">
+                    📄 {file.fileName} <span className="file-size-badge">{file.fileSize}</span>
+                  </td>
+                  <td><span className="type-badge">{file.category}</span></td>
+                  <td className="time-stamp">{new Date(file.dateGenerated).toLocaleString()}</td>
+                  <td>
+                    <button className="download-btn-ui" onClick={() => handleDownload(file.reportId, file.fileName)}>
+                      Download
+                    </button>
+                  </td>
+                </tr>
+              ))
             ) : (
-              <tr>
-                <td colSpan="4" style={{textAlign: 'center', padding: '40px', color: '#94a3b8'}}>
-                   No reports found in history.
-                </td>
-              </tr>
+              <tr><td colSpan="4" className="no-data">No history found.</td></tr>
             )}
           </tbody>
         </table>

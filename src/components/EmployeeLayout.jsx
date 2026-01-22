@@ -7,9 +7,7 @@ const EmployeeLayout = () => {
   const location = useLocation();
 
   const handleLogout = () => {
-    // Clear the session from localStorage
     localStorage.removeItem("user_session");
-    // Redirect to Landing Page
     navigate("/");
   };
 
@@ -46,12 +44,19 @@ const EmployeeLayout = () => {
           >
             💰 Salary Info
           </Link>
+          
+          {/* FIXED: Pointing to /employee/settings to match the Route in App.js */}
+          <Link 
+            to="/employee/settings" 
+            className={location.pathname === "/employee/settings" ? "active" : ""}
+          >
+            ⚙️ Profile Settings
+          </Link>
         </nav>
 
-        {/* Professional Sidebar Footer */}
         <div className="sidebar-footer">
           <button className="logout-btn-noticeable" onClick={handleLogout}>
-             Sign Out
+              Sign Out
           </button>
         </div>
       </aside>

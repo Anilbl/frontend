@@ -1,190 +1,199 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  getEmployees,
-  deleteEmployee,
-  getActiveEmployeeStats,
-} from "../../api/employeeApi";
+import { getEmployees, deleteEmployee } from "../../api/employeeApi";
 import ConfirmModal from "../../components/ConfirmModal";
 import "./Employees.css";
 
 export default function Employees() {
-  const [employees, setEmployees] = useState([]);
-  const [activeStats, setActiveStats] = useState({});
-  const [expandedId, setExpandedId] = useState(null);
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [deleteId, setDeleteId] = useState(null);
-  const [searchTerm, setSearchTerm] = useState("");
-
-  /* =========================
-      1. PAGINATION STATE
-     ========================= */
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10; // Change this to show more/fewer rows per page
-
   const navigate = useNavigate();
 
+  const [employees, setEmployees] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [expandedId, setExpandedId] = useState(null);
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  const [showModal, setShowModal] = useState(false);
+  const [targetId, setTargetId] = useState(null);
+
   useEffect(() => {
-    fetchData();
+    fetchEmployees();
   }, []);
 
-  // Reset to page 1 whenever searching
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm]);
-
-  const fetchData = async () => {
+  const fetchEmployees = async () => {
     try {
-      const [empRes, statRes] = await Promise.all([
-        getEmployees(),
-        getActiveEmployeeStats(),
-      ]);
-      setEmployees(empRes.data || []);
-      setActiveStats(statRes.data || {});
+      const res = await getEmployees();
+      setEmployees(res.data || []);
     } catch (err) {
-      console.error("Failed to load employees.", err);
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
   };
 
-  /* =========================
-      2. FILTER & PAGINATION LOGIC
-     ========================= */
-  const filteredEmployees = employees.filter((emp) => {
-    const fullName = `${emp.firstName} ${emp.lastName}`.toLowerCase();
-    const search = searchTerm.toLowerCase();
-    const empIdStr = emp.empId?.toString() || "";
-    return fullName.includes(search) || empIdStr.includes(search);
-  });
+  const openDeleteModal = (e, id) => {
+    e.stopPropagation();
+    setTargetId(id);
+    setShowModal(true);
+  };
 
-  // Calculate indexes for slicing
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  
-  // The actual items shown on the current page
-  const currentEmployees = filteredEmployees.slice(indexOfFirstItem, indexOfLastItem);
-  
-  // Total pages calculation
-  const totalPages = Math.ceil(filteredEmployees.length / itemsPerPage);
-
-  const paginate = (pageNumber) => setCurrentPage(pageNumber);
-
-  const handleDelete = async () => {
+  const confirmDelete = async () => {
     try {
-      await deleteEmployee(deleteId);
-      setShowConfirm(false);
-      fetchData();
+      await deleteEmployee(targetId);
+      fetchEmployees();
     } catch (err) {
-      alert(err?.response?.data?.message || "Failed to delete employee");
+      alert("Failed to delete employee");
+    } finally {
+      setShowModal(false);
     }
   };
+
+  const filtered = employees
+    .filter(emp =>
+      `${emp.firstName} ${emp.lastName}`
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase())
+    )
+    .sort((a, b) => (b.empId || b.id) - (a.empId || a.id));
+
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+  const currentData = filtered.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  if (loading) return <div className="loader">Loading...</div>;
 
   return (
-    <div className="app-canvas">
-      <header className="page-header">
-        <div className="header-text">
-          <h1>Employee Management</h1>
-          <p>Clean view of your workforce directory</p>
+    <div className="app-canvas professional-view">
+      <ConfirmModal
+        show={showModal}
+        onConfirm={confirmDelete}
+        onCancel={() => setShowModal(false)}
+      />
+
+      {/* HEADER */}
+      <header className="page-header compact">
+        <div className="header-left">
+          <input
+            placeholder="Search by name..."
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setCurrentPage(1);
+            }}
+          />
         </div>
 
-        <div className="header-actions">
-          <div className="search-container">
-            <input
-              type="text"
-              className="search-input"
-              placeholder="Search by ID or Name..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          <button className="primary-btn" onClick={() => navigate("/admin/employees/new")}>
+        <h3 className="centered-title">Employee Management</h3>
+
+        <div className="header-right">
+          <button
+            className="primary-btn"
+            onClick={() => navigate("/admin/employees/new")}
+          >
             + Add Employee
           </button>
         </div>
       </header>
 
-      {/* Stats Section */}
-      <section className="dashboard-stats">
-        {Object.entries(activeStats).map(([month, count]) => (
-          <div className="stat-pill" key={month}>
-            <span className="month-label">Month {month}</span>
-            <span className="count-label">{count} Working</span>
-          </div>
-        ))}
-      </section>
+      {/* TABLE HEADER */}
+      <div className="list-columns">
+        <span>Name / ID</span>
+        <span>Email</span>
+        <span>Department</span>
+        <span>Status</span>
+        <span style={{ textAlign: "right" }}>Actions</span>
+      </div>
 
-      <div className="data-list-container">
-        <div className="list-columns">
-          <span>Employee Name</span>
-          <span>Email</span>
-          <span>Designation</span>
-          <span>Status</span>
-          <span className="text-right">Details</span>
-        </div>
-
-        <div className="scrollable-list-area">
-          {currentEmployees.length > 0 ? (
-            currentEmployees.map((emp) => (
-              <div key={emp.empId} className={`list-row-card ${expandedId === emp.empId ? "expanded" : ""}`}>
-                <div className="row-visible" onClick={() => setExpandedId(expandedId === emp.empId ? null : emp.empId)}>
-                  <span className="emp-name">
-                    <small>#{emp.empId}</small> {emp.firstName} {emp.lastName}
+      {/* LIST */}
+      <div className="fixed-list-area">
+        {currentData.length > 0 ? (
+          currentData.map(emp => {
+            const id = emp.empId || emp.id;
+            return (
+              <div key={id} className="list-row-group">
+                <div
+                  className="row-visible"
+                  onClick={() =>
+                    setExpandedId(expandedId === id ? null : id)
+                  }
+                >
+                  <span className="bold">
+                    #{id} {emp.firstName} {emp.lastName}
                   </span>
-                  <span className="emp-email">{emp.email}</span>
-                  <span className="emp-title">{emp.position?.designationTitle || "N/A"}</span>
+                  <span>{emp.email}</span>
+                  <span>{emp.department?.deptName || "N/A"}</span>
                   <span>
-                    <b className={`status-tag ${emp.isActive ? "active" : "inactive"}`}>
+                    <span
+                      className={`status-tag ${
+                        emp.isActive ? "active" : "inactive"
+                      }`}
+                    >
                       {emp.isActive ? "Working" : "On Leave"}
-                    </b>
+                    </span>
                   </span>
-                  <span className="text-right">
-                    <button className="details-btn">{expandedId === emp.empId ? "Hide" : "View"}</button>
-                  </span>
+                  <div style={{ textAlign: "right" }}>
+                    <button className="view-btn">
+                      {expandedId === id ? "Hide" : "View"}
+                    </button>
+                  </div>
                 </div>
-                {/* Hidden Tray Logic here... */}
+
+                {expandedId === id && (
+                  <div className="row-hidden-tray">
+                    <div className="details-grid">
+                      <span><strong>Contact:</strong> {emp.contact}</span>
+                      <span><strong>Position:</strong> {emp.position?.designationTitle || "N/A"}</span>
+                      <span><strong>Education:</strong> {emp.education}</span>
+
+                      <div className="tray-actions">
+                        <button
+                          className="action-link edit"
+                          onClick={() => navigate(`/admin/employees/edit/${id}`)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          className="action-link delete"
+                          onClick={(e) => openDeleteModal(e, id)}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
-            ))
-          ) : (
-            <div className="no-results">No employees found.</div>
-          )}
-        </div>
-
-       
-        {totalPages > 1 && (
-          <div className="pagination-bar">
-            <button 
-              disabled={currentPage === 1} 
-              onClick={() => paginate(currentPage - 1)}
-              className="page-btn"
-            >
-              Prev
-            </button>
-            
-            {[...Array(totalPages)].map((_, index) => (
-              <button
-                key={index + 1}
-                onClick={() => paginate(index + 1)}
-                className={`page-btn ${currentPage === index + 1 ? "active" : ""}`}
-              >
-                {index + 1}
-              </button>
-            ))}
-
-            <button 
-              disabled={currentPage === totalPages} 
-              onClick={() => paginate(currentPage + 1)}
-              className="page-btn"
-            >
-              Next
-            </button>
-          </div>
+            );
+          })
+        ) : (
+          <div className="no-results">No employees found</div>
         )}
       </div>
 
-      <ConfirmModal
-        show={showConfirm}
-        onConfirm={handleDelete}
-        onCancel={() => setShowConfirm(false)}
-      />
+      {/* PAGINATION */}
+      <footer className="pagination-footer">
+        <button
+          disabled={currentPage === 1}
+          onClick={() => setCurrentPage(p => p - 1)}
+        >
+          Prev
+        </button>
+
+        <span>
+          Page {currentPage} of {totalPages || 1}
+        </span>
+
+        <button
+          disabled={currentPage === totalPages}
+          onClick={() => setCurrentPage(p => p + 1)}
+        >
+          Next
+        </button>
+      </footer>
     </div>
   );
 }
