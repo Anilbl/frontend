@@ -15,8 +15,8 @@ const EmployeeLayout = () => {
     <div className="layout-container">
       <aside className="sidebar">
         <div className="sidebar-header">
-          <div className="brand-logo">NAST</div>
-          <span className="brand-name">LMS Panel</span>
+          <div className="brand-logo">Payroll Management System</div>
+          <span className="brand-name">Your Salary Overview</span>
         </div>
 
         <nav className="sidebar-nav">
@@ -60,6 +60,7 @@ const EmployeeLayout = () => {
           </button>
         </div>
       </aside>
+      
 
       <main className="main-content">
         <Outlet />

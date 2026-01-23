@@ -81,3 +81,24 @@
   border-radius: 8px;
   cursor: pointer;
 }
+.success-banner {
+  background-color: #dcfce7;
+  color: #166534;
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+  text-align: center;
+  font-weight: 600;
+  border: 1px solid #10b981;
+  animation: slideDown 0.3s ease;
+}
+
+.form-fade {
+  opacity: 0.6;
+  pointer-events: none; /* Prevents double submission during the 2s wait */
+}
+
+@keyframes slideDown {
+  from { transform: translateY(-10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}

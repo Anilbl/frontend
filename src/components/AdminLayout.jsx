@@ -26,7 +26,7 @@ const AdminLayout = () => {
       {/* Sidebar */}
       <aside className="admin-sidebar">
         <div className="sidebar-header">
-          <div className="logo-box">NAST</div>
+          <div className="logo-box">Payroll Management System</div>
         </div>
 
         <nav className="sidebar-nav">
@@ -56,7 +56,7 @@ const AdminLayout = () => {
         </div>
 
         <footer className="admin-footer">
-          &copy; {new Date().getFullYear()} NAST College
+          &copy; {new Date().getFullYear()} Payroll Management System. All rights reserved.
         </footer>
       </div>
     </div>

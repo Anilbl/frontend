@@ -34,7 +34,7 @@ const AdminDashboard = () => {
         if (statsRes.data) {
           setStats({
             totalWorkforce: statsRes.data.totalWorkforce || 0,
-            dailyAttendance: statsRes.data.dailyAttendance ? `${statsRes.data.dailyAttendance}%` : "0%",
+            dailyAttendance: statsRes.data.dailyAttendance ? `${statsRes.data.dailyAttendance}` : "0",
             leaveRequests: (statsRes.data.leaveRequests || 0).toString().padStart(2, '0')
           });
         }
@@ -66,7 +66,7 @@ const AdminDashboard = () => {
       <div className="dashboard-content">
         <div className="dashboard-header">
           <h1>Dashboard Overview</h1>
-          <p>Real-time summary of the NAST Payroll Management System</p>
+          <p>Real-time summary of the Payroll Management System</p>
         </div>
 
         <div className="top-stats-grid">
