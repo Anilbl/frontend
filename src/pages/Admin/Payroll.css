@@ -118,3 +118,49 @@
     font-weight: bold;
     color: #3498db;
 }
+/* New Filter Bar */
+.filter-bar {
+    display: flex;
+    gap: 15px;
+    background: white;
+    padding: 15px 20px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    border: 1px solid #e2e8f0;
+    align-items: center;
+}
+
+.filter-group { display: flex; flex-direction: column; gap: 5px; }
+.filter-label { font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; }
+.filter-select {
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid #d1d9e0;
+    font-size: 14px;
+    outline: none;
+    background: #f8fafc;
+}
+
+/* Pagination UI */
+.pagination-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    background: #fff;
+    border-top: 1px solid #edf2f7;
+    border-radius: 0 0 12px 12px;
+}
+.pagination-info { font-size: 14px; color: #64748b; }
+.pagination-btns { display: flex; gap: 8px; }
+.page-btn {
+    padding: 8px 16px;
+    border: 1px solid #e2e8f0;
+    background: white;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: 0.2s;
+}
+.page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.page-btn.active { background: #3498db; color: white; border-color: #3498db; }

@@ -20,8 +20,9 @@ const HistoryModal = ({ isOpen, onClose, history, employeeName }) => {
 
   if (!isOpen) return null; 
 
-  const yearlyHistory = history.filter(h => 
-    new Date(h.payDate).getFullYear().toString() === selectedYear
+  // Added safety check for history array
+  const yearlyHistory = (history || []).filter(h => 
+    h.payDate && new Date(h.payDate).getFullYear().toString() === selectedYear
   );
 
   return (
@@ -55,13 +56,13 @@ const HistoryModal = ({ isOpen, onClose, history, employeeName }) => {
             <tbody>
               {yearlyHistory.length > 0 ? yearlyHistory.map(h => (
                 <tr key={h.payrollId} className={h.status === "VOIDED" ? "row-voided" : ""}>
-                  <td>{new Date(h.payDate).toLocaleDateString()}</td>
-                  <td>Rs. {h.grossSalary.toLocaleString()}</td>
-                  <td>- {h.ssfContribution?.toLocaleString()}</td>
-                  <td>- {h.citContribution?.toLocaleString()}</td>
-                  <td>Rs. {h.totalTax.toLocaleString()}</td>
-                  <td className="bold">Rs. {h.netSalary.toLocaleString()}</td>
-                  <td><span className={`status-badge status-${h.status.toLowerCase().replace('_', '-')}`}>{h.status}</span></td>
+                  <td>{h.payDate ? new Date(h.payDate).toLocaleDateString() : "N/A"}</td>
+                  <td>Rs. {h.grossSalary?.toLocaleString() || 0}</td>
+                  <td>- {h.ssfContribution?.toLocaleString() || 0}</td>
+                  <td>- {h.citContribution?.toLocaleString() || 0}</td>
+                  <td>Rs. {h.totalTax?.toLocaleString() || 0}</td>
+                  <td className="bold">Rs. {h.netSalary?.toLocaleString() || 0}</td>
+                  <td><span className={`status-badge status-${h.status?.toLowerCase().replace('_', '-') || 'default'}`}>{h.status}</span></td>
                 </tr>
               )) : <tr><td colSpan="7" style={{textAlign:'center', padding:'20px'}}>No records found for this year.</td></tr>}
             </tbody>
@@ -94,9 +95,9 @@ const PayrollManagement = () => {
         api.get("/employees"),
         api.get("/payment-methods")
       ]);
-      setPayrolls(pRes.data);
-      setEmployees(eRes.data);
-      setPaymentMethods(mRes.data);
+      setPayrolls(pRes.data || []);
+      setEmployees(eRes.data || []);
+      setPaymentMethods(mRes.data || []);
     } catch (err) { 
       console.error("Fetch Error:", err); 
     } finally { 
@@ -156,7 +157,7 @@ const PayrollManagement = () => {
   };
 
   const handleVoid = async (p) => {
-    if (window.confirm(`Are you sure you want to VOID payroll for ${p.employee.firstName}? This cannot be undone.`)) {
+    if (window.confirm(`Are you sure you want to VOID payroll for ${p.employee?.firstName}? This cannot be undone.`)) {
       try { 
         await voidPayrollRecord(p.payrollId); 
         fetchData(); 
@@ -167,7 +168,7 @@ const PayrollManagement = () => {
   const handleViewHistory = async (emp) => {
     try {
       const res = await getEmployeeHistory(emp.empId);
-      setHistoryData(res.data);
+      setHistoryData(res.data || []);
       setSelectedEmpName(`${emp.firstName} ${emp.lastName}`);
       setIsHistoryOpen(true);
     } catch (err) { console.error(err); }
@@ -175,8 +176,9 @@ const PayrollManagement = () => {
 
   const latestPayrollsMap = useMemo(() => {
     const map = new Map();
+    if (!payrolls) return map;
     [...payrolls].sort((a,b) => b.payrollId - a.payrollId).forEach(p => {
-      if(!map.has(p.employee.empId)) map.set(p.employee.empId, p);
+      if(p.employee && !map.has(p.employee.empId)) map.set(p.employee.empId, p);
     });
     return map;
   }, [payrolls]);
@@ -208,13 +210,10 @@ const PayrollManagement = () => {
             </tr>
           </thead>
           <tbody>
-            {employees
+            {(employees || [])
               .filter(e => `${e.firstName} ${e.lastName}`.toLowerCase().includes(search.toLowerCase()))
               .map(emp => {
                 const latest = latestPayrollsMap.get(emp.empId);
-                
-                // CRITICAL CHANGE: Only lock if status is PAID.
-                // If status is PENDING_PAYMENT, we allow editing and re-running.
                 const isFullyPaid = latest && latest.status === "PAID";
                 const isPending = latest && latest.status === "PENDING_PAYMENT";
                 
@@ -265,7 +264,7 @@ const PayrollManagement = () => {
 
                     <td>
                       {isFullyPaid ? (
-                        <span className="locked-value">{latest.paymentMethod?.methodName}</span>
+                        <span className="locked-value">{latest.paymentMethod?.methodName || "N/A"}</span>
                       ) : (
                         <select 
                           className="method-select-small"
@@ -288,7 +287,6 @@ const PayrollManagement = () => {
                     </td>
                     
                     <td className="actions-cell" style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
-                      {/* Show 'Run' or 'Resume' if not fully paid */}
                       {!isFullyPaid && (
                         <button 
                             className="btn-icon btn-run" 
@@ -303,8 +301,8 @@ const PayrollManagement = () => {
                       
                       {latest && (
                         <>
-                          <button className="btn-icon btn-email" onClick={() => handleEmail(latest.payrollId)} disabled={isPending}>Email</button>
-                          <button className="btn-icon btn-void" onClick={() => handleVoid(latest)}>Void</button>
+                          <button className="btn-icon btn-email" style={{background:'#3498db', color:'white'}} onClick={() => handleEmail(latest.payrollId)} disabled={isPending}>Email</button>
+                          <button className="btn-icon btn-void" style={{background:'#e74c3c', color:'white'}} onClick={() => handleVoid(latest)}>Void</button>
                         </>
                       )}
                     </td>

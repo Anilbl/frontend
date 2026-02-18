@@ -34,13 +34,14 @@ export default function SalaryComponents() {
       setComponents(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error("Error fetching salary components", err);
+      setComponents([]); // Set empty array on error to prevent mapping crash
     }
   };
 
   const fetchTypes = async () => {
     try {
       const res = await api.get(TYPE_API);
-      setTypes(res.data);
+      setTypes(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error("Error fetching component types", err);
     }
@@ -50,12 +51,13 @@ export default function SalaryComponents() {
     setEditingId(item.componentId);
     setAddingNew(false);
     setFormData({
-      componentName: item.componentName,
-      componentTypeId: item.componentType.componentTypeId,
-      calculationMethod: item.calculationMethod,
-      defaultValue: item.defaultValue,
-      description: item.description,
-      required: item.required
+      componentName: item.componentName || "",
+      // Optional chaining used here to prevent crash if componentType is missing
+      componentTypeId: item.componentType?.componentTypeId || "",
+      calculationMethod: item.calculationMethod || "fixed",
+      defaultValue: item.defaultValue || 0,
+      description: item.description || "",
+      required: item.required || false
     });
   };
 
@@ -73,7 +75,10 @@ export default function SalaryComponents() {
   };
 
   const saveAction = async (id) => {
-    if (!formData.componentName || !formData.componentTypeId) return;
+    if (!formData.componentName || !formData.componentTypeId) {
+      alert("Please fill in Component Name and Type.");
+      return;
+    }
     const payload = {
       ...formData,
       componentType: { componentTypeId: formData.componentTypeId }
@@ -225,7 +230,7 @@ export default function SalaryComponents() {
                       }
                     />
                   ) : (
-                    c.componentName
+                    c.componentName || "N/A"
                   )}
                 </td>
                 <td>
@@ -236,6 +241,7 @@ export default function SalaryComponents() {
                         setFormData({ ...formData, componentTypeId: e.target.value })
                       }
                     >
+                      <option value="">Select Type</option>
                       {types.map((t) => (
                         <option key={t.componentTypeId} value={t.componentTypeId}>
                           {t.name}
@@ -243,7 +249,8 @@ export default function SalaryComponents() {
                       ))}
                     </select>
                   ) : (
-                    c.componentType.name
+                    // CRITICAL FIX: Optional chaining to prevent "reading name of undefined"
+                    c.componentType?.name || "N/A"
                   )}
                 </td>
                 <td>
@@ -284,7 +291,7 @@ export default function SalaryComponents() {
                       }
                     />
                   ) : (
-                    c.description
+                    c.description || ""
                   )}
                 </td>
                 <td style={{ textAlign: "center" }}>
@@ -300,7 +307,7 @@ export default function SalaryComponents() {
                     "✅"
                   ) : (
                     "❌"
-                  )}
+                  ) }
                 </td>
                 <td style={{ textAlign: "center" }}>
                   {editingId === c.componentId ? (
