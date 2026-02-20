@@ -85,7 +85,6 @@ const HistoryModal = ({ isOpen, onClose, history, employeeName }) => {
 const PayrollManagement = () => {
   const navigate = useNavigate();
   
-  // FIXED: Hooks moved inside the component
   const [emailStatus, setEmailStatus] = useState({ loading: false, id: null });
   const [payrolls, setPayrolls] = useState([]);
   const [employees, setEmployees] = useState([]);
@@ -185,20 +184,10 @@ const PayrollManagement = () => {
 
   const handleEmail = async (payrollId) => {
     setEmailStatus({ loading: true, id: payrollId });
-    console.log(`%c[Email Process] Starting for Payroll ID: ${payrollId}...`, "color: blue; font-weight: bold;");
-    
-    const interval = setInterval(() => {
-      console.log("[Email Process] Waiting for Mail Server response...");
-    }, 2000);
-
     try {
-      const response = await emailPayslip(payrollId);
-      clearInterval(interval);
-      console.log("%c[Email Process] SUCCESS: Message delivered to SMTP server.", "color: green; font-weight: bold;");
+      await emailPayslip(payrollId);
       alert("✅ Payslip sent successfully!");
     } catch (err) {
-      clearInterval(interval);
-      console.error("%c[Email Process] FAILED:", "color: red; font-weight: bold;", err);
       const errorMessage = err.response?.data?.message || "Check network/SMTP logs.";
       alert(`❌ Failed to send email: ${errorMessage}`);
     } finally {
@@ -298,6 +287,9 @@ const PayrollManagement = () => {
             {currentRecords.length > 0 ? currentRecords.map(emp => {
               const record = currentStatusMap.get(String(emp.empId));
               const inputs = processingInputs[emp.empId] || { festivalBonus:0, otherBonus:0, citContribution:0, paymentMethodId:"" };
+              
+              // Calculate earned value for current check
+              const earnedValue = emp.earnedSalary ?? emp.basicSalary ?? 0;
 
               return (
                 <tr key={emp.empId} className={record ? "row-locked" : "table-row-hover"}>
@@ -309,7 +301,7 @@ const PayrollManagement = () => {
                   </td>
 
                   <td className="bold">
-                    Rs. {emp.earnedSalary?.toLocaleString() ?? emp.basicSalary?.toLocaleString()}
+                    Rs. {earnedValue.toLocaleString()}
                   </td>
                   
                   <td>
@@ -334,14 +326,19 @@ const PayrollManagement = () => {
                   
                   <td>
                     <span className={`status-badge status-${(record?.status || "READY").toLowerCase().replace('_', '-')}`}>
-                        {record?.status || (isPastDate ? "NO RECORD" : "READY")}
+                        {record?.status || (isPastDate ? "NO RECORD" : (earnedValue === 0 ? "NO EARNINGS" : "READY"))}
                     </span>
                   </td>
 
                   <td className="actions-cell">
                     {!record ? (
                       !isPastDate && (
-                        <button className="btn-icon btn-pdf" disabled={isFutureDate} onClick={()=>handleActionRun(emp)}>
+                        /* UPDATED LOGIC: Disable if Future OR if Earned Value is 0 */
+                        <button 
+                            className="btn-icon btn-pdf" 
+                            disabled={isFutureDate || earnedValue === 0} 
+                            onClick={()=>handleActionRun(emp)}
+                        >
                             Run
                         </button>
                       )
