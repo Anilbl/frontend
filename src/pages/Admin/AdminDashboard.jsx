@@ -12,9 +12,21 @@ const AdminDashboard = () => {
   const [recentAttendance, setRecentAttendance] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // --- FILTERS STATE (Defaults to Current Date) ---
+  const today = new Date();
+  const [selectedDay, setSelectedDay] = useState(today.getDate().toString().padStart(2, '0'));
+  const [selectedMonth, setSelectedMonth] = useState((today.getMonth() + 1).toString().padStart(2, '0'));
+  const [selectedYear, setSelectedYear] = useState(today.getFullYear().toString());
+  const [searchTerm, setSearchTerm] = useState("");
+
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const recordsPerPage = 10;
+
+  // Helper arrays for date selection
+  const days = Array.from({ length: 31 }, (_, i) => (i + 1).toString().padStart(2, '0'));
+  const months = Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, '0'));
+  const years = ["2024", "2025", "2026", "2027"];
 
   const formatTime = (timeString) => {
     if (!timeString) return "---";
@@ -33,8 +45,19 @@ const AdminDashboard = () => {
         const token = session.jwt || session.token;
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
+        // Fetch Stats
         const statsRes = await axios.get('http://localhost:8080/api/dashboard/admin/stats', { headers });
-        const attendanceRes = await axios.get('http://localhost:8080/api/dashboard/recent-attendance', { headers });
+        
+        // Fetch Attendance with filters (Sending Day, Month, Year, and Search to Backend)
+        const attendanceRes = await axios.get('http://localhost:8080/api/dashboard/recent-attendance', { 
+          headers,
+          params: {
+            day: selectedDay,
+            month: selectedMonth,
+            year: selectedYear,
+            search: searchTerm
+          }
+        });
 
         if (statsRes.data) {
           setStats({
@@ -46,7 +69,7 @@ const AdminDashboard = () => {
         }
 
         if (Array.isArray(attendanceRes.data)) {
-          // SORTING: Latest records first (Descending order by time)
+          // SORTING: Latest records first
           const sortedData = attendanceRes.data.sort((a, b) => {
              const timeA = new Date(a.checkInTime).getTime() || 0;
              const timeB = new Date(b.checkInTime).getTime() || 0;
@@ -63,7 +86,7 @@ const AdminDashboard = () => {
     };
 
     fetchDashboardData();
-  }, []);
+  }, [selectedDay, selectedMonth, selectedYear, searchTerm]); // Refetch data when any filter changes
 
   // Pagination Logic
   const indexOfLastRecord = currentPage * recordsPerPage;
@@ -103,7 +126,32 @@ const AdminDashboard = () => {
         </div>
 
         <div className="dashboard-recent-section">
-          <h3 className="section-divider-title">Attendance History</h3>
+          <div className="section-header-flex">
+            <h3 className="section-divider-title">Attendance History</h3>
+            
+            {/* --- FILTER BAR (SAME LINE) --- */}
+            <div className="filter-controls-row">
+              <input 
+                type="text" 
+                placeholder="Search Emp ID/Name..." 
+                className="small-search-input"
+                value={searchTerm}
+                onChange={(e) => {setSearchTerm(e.target.value); setCurrentPage(1);}}
+              />
+              <div className="date-selectors">
+                <select value={selectedDay} onChange={(e) => {setSelectedDay(e.target.value); setCurrentPage(1);}} className="mini-select">
+                  {days.map(d => <option key={d} value={d}>{d}</option>)}
+                </select>
+                <select value={selectedMonth} onChange={(e) => {setSelectedMonth(e.target.value); setCurrentPage(1);}} className="mini-select">
+                  {months.map(m => <option key={m} value={m}>{m}</option>)}
+                </select>
+                <select value={selectedYear} onChange={(e) => {setSelectedYear(e.target.value); setCurrentPage(1);}} className="mini-select">
+                  {years.map(y => <option key={y} value={y}>{y}</option>)}
+                </select>
+              </div>
+            </div>
+          </div>
+
           <div className="recent-table-container">
             <table className="recent-attendance-table">
               <thead>
@@ -147,13 +195,12 @@ const AdminDashboard = () => {
                     ))
                 ) : (
                   <tr>
-                    <td colSpan="5" className="no-data">No attendance recorded</td>
+                    <td colSpan="5" className="no-data">No records found for the selected date.</td>
                   </tr>
                 )}
               </tbody>
             </table>
 
-            {/* Professional Bottom-Right Pagination */}
             <div className="pagination-footer">
                <div className="pagination-info">
                   Showing {indexOfFirstRecord + 1} to {Math.min(indexOfLastRecord, recentAttendance.length)} of {recentAttendance.length} records

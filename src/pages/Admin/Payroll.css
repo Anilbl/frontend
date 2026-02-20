@@ -125,8 +125,106 @@
     cursor: pointer;
     text-transform: uppercase;
 }
+<<<<<<< HEAD
 
 .btn-pdf { background: #10b981; color: white; } /* "RUN" button color */
 .btn-email { background: #3b82f6; color: white; }
 .btn-void { background: #ef4444; color: white; }
 .btn-history { background: #64748b; color: white; }
+=======
+.p-btn.active {
+    background: #4a90e2;
+    color: white;
+    border-color: #4a90e2;
+}
+/* --- New Concept Styles --- */
+
+/* Modal Header Layout Update */
+.modal-header {
+    padding: 24px;
+    border-bottom: 1px solid #edf2f7;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.modal-controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+/* Close Button Styling */
+.close-btn {
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    color: #64748b;
+    font-size: 24px;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    line-height: 1;
+}
+
+.close-btn:hover {
+    background: #fee2e2;
+    color: #ef4444;
+    border-color: #fecaca;
+}
+
+/* Empty State Styling */
+.empty-state {
+    padding: 40px !important;
+    text-align: center;
+    color: #94a3b8;
+    font-style: italic;
+    background: #fdfdfd;
+    font-size: 16px;
+}
+
+/* Disabled/Future Date Styling */
+button:disabled {
+    background: #e2e8f0 !important;
+    color: #94a3b8 !important;
+    cursor: not-allowed !important;
+    transform: none !important;
+    opacity: 0.7;
+}
+
+input:disabled, select:disabled {
+    background: #f8fafc !important;
+    color: #cbd5e0 !important;
+    cursor: not-allowed;
+    border-color: #e2e8f0 !important;
+}
+
+/* Row Voided Styling in History */
+.row-voided {
+    background-color: #fff1f2;
+    text-decoration: line-through;
+    color: #fda4af;
+}
+
+/* Ensure history table fills modal */
+.modal-body {
+    padding: 0;
+    overflow-y: auto;
+}
+
+.history-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.history-table th {
+    position: sticky;
+    top: 0;
+    background: #f8fafc;
+    z-index: 10;
+}
+>>>>>>> d5a58d00e9115ad72756c5c9ee7b9dd5b5066ce3

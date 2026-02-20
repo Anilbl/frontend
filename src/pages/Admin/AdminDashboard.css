@@ -15,10 +15,9 @@
   margin-bottom: 2.5rem;
 }
 
-/* TOP STATS - Updated for 4 Columns */
+/* TOP STATS - 4 Columns */
 .top-stats-grid {
   display: grid;
-  /* Supports the 4th "Active" box and wraps nicely on smaller screens */
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 1.5rem;
   margin-bottom: 3.5rem;
@@ -67,15 +66,74 @@
   font-weight: 800;
 }
 
-/* TABLE STYLING */
-.section-divider-title {
-  font-size: 1.25rem;
-  margin-top: 2rem;
+/* TABLE & FILTERS SECTION */
+.section-header-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 1.5rem;
-  color: #1e293b;
-  font-weight: 700;
+  flex-wrap: wrap;
+  gap: 15px;
 }
 
+.section-divider-title {
+  font-size: 1.25rem;
+  color: #1e293b;
+  font-weight: 700;
+  margin: 0; /* Removed margin to align with filters */
+}
+
+/* NEW FILTER ROW STYLING */
+.filter-controls-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.small-search-input {
+  padding: 8px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  width: 200px;
+  font-size: 13.5px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.small-search-input:focus {
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.date-selectors {
+  display: flex;
+  gap: 6px;
+  background: #f1f5f9;
+  padding: 4px;
+  border-radius: 10px;
+}
+
+.mini-select {
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: white;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  outline: none;
+}
+
+.mini-select:hover {
+  background: #f8fafc;
+}
+
+.mini-select:focus {
+  border-color: #4f46e5;
+}
+
+/* TABLE CONTAINER */
 .recent-table-container {
   background: white;
   border-radius: 12px;
@@ -132,7 +190,7 @@
   border: 1px solid #fecaca;
 }
 
-/* MAP BUTTON STYLING */
+/* MAP BUTTON */
 .map-link-btn {
   color: #10b981;
   font-weight: 700;
@@ -156,7 +214,7 @@
   font-size: 0.85rem;
 }
 
-/* PROFESSIONAL PAGINATION FOOTER */
+/* PAGINATION */
 .pagination-footer {
   display: flex;
   justify-content: space-between;
@@ -214,6 +272,6 @@
 .no-data {
   text-align: center;
   color: #a0aec0;
-  padding: 30px;
+  padding: 40px;
   font-style: italic;
 }
