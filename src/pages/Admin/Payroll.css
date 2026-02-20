@@ -1,4 +1,4 @@
-/* Container & Background - Removed excessive side padding to use full width */
+/* Container & Background */
 .payroll-container {
     padding: 20px;
     background: #f8fafc;
@@ -27,7 +27,7 @@
 .header-title { font-size: 24px; color: #1e293b; margin-bottom: 4px; font-weight: 700; }
 .header-subtitle { color: #64748b; font-size: 14px; }
 
-/* Status Badges */
+/* Status Badges - Match UI colors exactly */
 .status-badge {
     padding: 6px 12px;
     border-radius: 20px;
@@ -35,174 +35,98 @@
     font-weight: 800;
     text-transform: uppercase;
     display: inline-block;
-    white-space: nowrap;
 }
-.status-paid { color: #059669; background: #ecfdf5; border: 1px solid #81e6d9; }
-.status-voided { color: #dc2626; background: #fef2f2; border: 1px solid #feb2b2; }
-.status-pending-payment { color: #d97706; background: #fffbeb; border: 1px solid #fcd34d; }
+
+.status-paid { color: #059669; background: #ecfdf5; border: 1px solid #c6f6d5; }
 .status-ready { color: #3b82f6; background: #eff6ff; border: 1px solid #bfdbfe; }
-.status-processing { color: #7c3aed; background: #f5f3ff; border: 1px solid #ddd6fe; }
+.status-voided { color: #dc2626; background: #fef2f2; border: 1px solid #feb2b2; }
 
-/* Search Bar */
-.search-bar {
-    padding: 12px 20px;
-    width: 300px;
-    border: 1px solid #d1d9e0;
-    border-radius: 10px;
-    outline: none;
-    transition: 0.3s;
-    background: white;
-}
-.search-bar:focus { border-color: #3498db; box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1); }
-
-/* Table Styling - Expanded to 100% width */
+/* Table Styling */
 .payroll-card {
     background: white;
     border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     border: 1px solid #e2e8f0;
     width: 100%;
-    overflow-x: auto; /* Allow horizontal scroll on very small screens only */
 }
-.payroll-table { 
-    width: 100%; 
-    border-collapse: collapse;
-    table-layout: auto; /* Allow columns to expand based on content */
-}
+
+.payroll-table { width: 100%; border-collapse: collapse; }
+
 .payroll-table th {
     background: #fdfdfd;
-    padding: 18px 15px;
+    padding: 16px;
     text-align: left;
-    color: #8898aa;
-    font-size: 11px;
+    color: #64748b;
+    font-size: 12px;
     text-transform: uppercase;
-    border-bottom: 1px solid #edf2f7;
-    letter-spacing: 0.5px;
-    white-space: nowrap;
+    border-bottom: 2px solid #f1f5f9;
 }
+
 .payroll-table td { 
-    padding: 18px 15px; 
-    border-bottom: 1px solid #edf2f7; 
-    font-size: 14px; 
-    color: #334155; 
+    padding: 16px; 
+    border-bottom: 1px solid #f1f5f9; 
+    vertical-align: middle;
 }
 
-/* Row Styling */
-.table-row-hover:hover {
-    background-color: #fcfcfc;
-}
-
+/* Row Lock States */
 .row-locked {
-    background-color: #f8fafc !important;
-}
-.row-locked td {
-    color: #94a3b8;
+    background-color: #fcfdfd; /* Slight tint to show it's finalized */
 }
 
-/* Bonus & CIT Inputs */
-.bonus-input-small {
-    width: 85px;
-    padding: 8px 10px;
-    border: 1px solid #cbd5e0;
-    border-radius: 8px;
-    background: white;
-    font-weight: 600;
-}
-
-.full-width-select {
-    width: 110px;
-}
+.row-locked td { color: #64748b; }
 
 .locked-value {
-    font-weight: 700;
-    color: #64748b;
-    background: #f1f5f9;
-    padding: 6px 12px;
-    border-radius: 8px;
-    border: 1px dashed #cbd5e0;
-    display: inline-block;
-    font-size: 13px;
-    font-style: italic;
-}
-
-.method-label {
     font-weight: 600;
     color: #475569;
+    background: #f8fafc;
+    padding: 4px 10px;
+    border-radius: 6px;
     font-size: 13px;
+    border: 1px solid #e2e8f0;
 }
 
-/* Actions Cell - Ensure buttons stay on one line and use space */
-.actions-header {
-    text-align: right !important;
-    padding-right: 25px !important;
+/* Form Elements */
+.bonus-input-small {
+    width: 90px;
+    padding: 8px;
+    border: 1px solid #cbd5e0;
+    border-radius: 6px;
+    font-size: 13px;
+    transition: 0.2s;
 }
 
-.actions-cell { 
-    display: flex; 
-    gap: 8px; 
-    justify-content: flex-end; 
-    align-items: center;
-    padding-right: 20px !important;
-    min-width: 220px; /* Ensure enough room for three buttons */
+.bonus-input-small:focus {
+    border-color: #3b82f6;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.filter-select {
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid #cbd5e0;
+    background: white;
+    font-size: 14px;
+}
+
+/* Actions Cell */
+.actions-cell {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
 }
 
 .btn-icon {
-    padding: 8px 12px;
-    border-radius: 8px;
+    padding: 8px 14px;
+    border-radius: 6px;
     border: none;
-    cursor: pointer;
     font-size: 11px;
-    font-weight: 800;
-    text-transform: uppercase;
-    transition: 0.2s;
-    white-space: nowrap;
-}
-.btn-icon:hover { transform: translateY(-1px); opacity: 0.9; }
-
-.btn-pdf { background: #2ecc71; color: white; }
-.btn-email { background: #3498db; color: white; }
-.btn-void { background: #e74c3c; color: white; }
-.btn-history { background: #64748b !important; color: white !important; }
-
-/* Modal Styles */
-.modal-overlay {
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(15, 23, 42, 0.7);
-    backdrop-filter: blur(4px);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-}
-.history-modal-content {
-    background: white;
-    width: 90%;
-    max-width: 1100px;
-    border-radius: 16px;
-    display: flex;
-    flex-direction: column;
-    max-height: 90vh;
-}
-
-.pagination-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1.5rem;
-    background: #fff;
-    border-top: 1px solid #edf2f7;
-}
-
-.p-btn {
-    padding: 5px 12px;
-    border: 1px solid #e2e8f0;
-    background: white;
-    border-radius: 4px;
+    font-weight: 700;
     cursor: pointer;
+    text-transform: uppercase;
 }
-.p-btn.active {
-    background: #4a90e2;
-    color: white;
-    border-color: #4a90e2;
-}
+
+.btn-pdf { background: #10b981; color: white; } /* "RUN" button color */
+.btn-email { background: #3b82f6; color: white; }
+.btn-void { background: #ef4444; color: white; }
+.btn-history { background: #64748b; color: white; }

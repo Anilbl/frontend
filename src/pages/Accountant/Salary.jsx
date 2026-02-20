@@ -20,7 +20,7 @@ const Salary = () => {
          * pull the token here. Your api/axios.js interceptor handles it.
          * We use the relative path '/payrolls/summary'.
          */
-        const res = await api.get('/payrolls/summary');
+       const res = await api.get('/salary-summary');
         setStats(res.data);
       } catch (err) {
         console.error("Error loading payroll data:", err);

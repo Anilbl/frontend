@@ -11,9 +11,17 @@ const AccountantLayout = () => {
     navigate("/");
   };
 
+  // Dynamically determines the title for the header
+  const getPageTitle = () => {
+    const path = location.pathname;
+    if (path.includes('dashboard')) return 'Financial Dashboard';
+    if (path.includes('payroll')) return 'Payroll Verification';
+    if (path.includes('salary')) return 'Salary Structure';
+    return 'Finance Portal';
+  };
+
   return (
     <div className="accountant-container">
-      {/* SIDEBAR SECTION */}
       <aside className="sidebar">
         <div className="sidebar-logo">
           <h2>NAST</h2>
@@ -31,23 +39,23 @@ const AccountantLayout = () => {
           <Link to="tax-compliance" className={location.pathname.includes('tax') ? 'active' : ''}>
             📄 Tax & Compliance
           </Link>
-          <Link to="financial-reports" className={location.pathname.includes('report') ? 'active' : ''}>
-            📊 Financial Reports
-          </Link>
         </nav>
         <button className="signout-btn" onClick={handleSignOut}>Sign Out</button>
       </aside>
 
-      {/* MAIN CONTENT SECTION */}
       <main className="main-content">
-        {/* HEADER: Search removed from here to prevent duplicates */}
+        {/* IMPROVED HEADER: Spaced out elements to avoid overlap */}
         <header className="top-header">
           <div className="header-left">
-            {/* This space is now clean for page-specific content */}
+            <h3 className="dynamic-title">{getPageTitle()}</h3>
           </div>
+          
           <div className="user-info">
              <div className="status-indicator-active"></div>
-             <span>Accountant: Finance Dept</span>
+             <div className="user-text">
+                <span className="u-name">Finance Accountant</span>
+                <span className="u-dept">Treasury Dept</span>
+             </div>
           </div>
         </header>
 
