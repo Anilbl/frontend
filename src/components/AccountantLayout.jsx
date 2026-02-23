@@ -11,43 +11,58 @@ const AccountantLayout = () => {
     navigate("/");
   };
 
+  const getPageTitle = () => {
+    const path = location.pathname;
+    if (path.includes('dashboard')) return 'Financial Dashboard';
+    if (path.includes('payroll')) return 'Payroll Verification';
+    if (path.includes('salary')) return 'Salary Structure';
+    return 'Finance Portal';
+  };
+
   return (
     <div className="accountant-container">
-      {/* SIDEBAR SECTION */}
       <aside className="sidebar">
-        <div className="sidebar-logo">
-          <h2>NAST</h2>
+        <div className="sidebar-content-wrapper">
+          <div className="sidebar-logo">
+            <h2>CPMS</h2>
+            <p>Payroll System</p>
+          </div>
+
+          <nav className="sidebar-menu">
+            <Link to="dashboard" className={location.pathname.includes('dashboard') ? 'active' : ''}>
+              🏠 Dashboard
+            </Link>
+            <Link to="salary-management" className={location.pathname.includes('salary') ? 'active' : ''}>
+              💸 Salary Management
+            </Link>
+            <Link to="payroll-processing" className={location.pathname.includes('payroll') ? 'active' : ''}>
+              💰 Payroll Processing
+            </Link>
+            <Link to="tax-compliance" className={location.pathname.includes('tax') ? 'active' : ''}>
+              📄 Tax & Compliance
+            </Link>
+          </nav>
         </div>
-        <nav className="sidebar-menu">
-          <Link to="dashboard" className={location.pathname.includes('dashboard') ? 'active' : ''}>
-            🏠 Dashboard
-          </Link>
-          <Link to="salary-management" className={location.pathname.includes('salary') ? 'active' : ''}>
-            💸 Salary Management
-          </Link>
-          <Link to="payroll-processing" className={location.pathname.includes('payroll') ? 'active' : ''}>
-            💰 Payroll Processing
-          </Link>
-          <Link to="tax-compliance" className={location.pathname.includes('tax') ? 'active' : ''}>
-            📄 Tax & Compliance
-          </Link>
-          <Link to="financial-reports" className={location.pathname.includes('report') ? 'active' : ''}>
-            📊 Financial Reports
-          </Link>
-        </nav>
-        <button className="signout-btn" onClick={handleSignOut}>Sign Out</button>
+
+        <div className="sidebar-footer">
+          <button className="signout-btn" onClick={handleSignOut}>
+            🚪 Sign Out
+          </button>
+        </div>
       </aside>
 
-      {/* MAIN CONTENT SECTION */}
       <main className="main-content">
-        {/* HEADER: Search removed from here to prevent duplicates */}
         <header className="top-header">
           <div className="header-left">
-            {/* This space is now clean for page-specific content */}
+            <h3 className="dynamic-title">{getPageTitle()}</h3>
           </div>
+          
           <div className="user-info">
              <div className="status-indicator-active"></div>
-             <span>Accountant: Finance Dept</span>
+             <div className="user-text">
+                <span className="u-name">Finance Accountant</span>
+                <span className="u-dept">Treasury Dept</span>
+             </div>
           </div>
         </header>
 

@@ -1,4 +1,4 @@
-/* Container & Background - Removed excessive side padding to use full width */
+/* Container & Background - Full Width, No Scroll */
 .payroll-container {
     padding: 20px;
     background: #f8fafc;
@@ -6,6 +6,7 @@
     width: 100%;
     box-sizing: border-box;
     font-family: 'Inter', sans-serif;
+    overflow-x: hidden; /* Prevent container-level scrolling */
 }
 
 /* Header UI */
@@ -15,24 +16,24 @@
     align-items: center;
     margin-bottom: 25px;
     flex-wrap: wrap;
-    gap: 20px;
+    gap: 15px;
 }
 
 .header-controls {
     display: flex;
-    gap: 12px;
+    gap: 10px;
     align-items: center;
 }
 
-.header-title { font-size: 24px; color: #1e293b; margin-bottom: 4px; font-weight: 700; }
-.header-subtitle { color: #64748b; font-size: 14px; }
+.header-title { font-size: 22px; color: #1e293b; margin-bottom: 2px; font-weight: 700; }
+.header-subtitle { color: #64748b; font-size: 13px; }
 
 /* Status Badges */
 .status-badge {
-    padding: 6px 12px;
-    border-radius: 20px;
-    font-size: 11px;
-    font-weight: 800;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 700;
     text-transform: uppercase;
     display: inline-block;
     white-space: nowrap;
@@ -41,130 +42,129 @@
 .status-voided { color: #dc2626; background: #fef2f2; border: 1px solid #feb2b2; }
 .status-pending-payment { color: #d97706; background: #fffbeb; border: 1px solid #fcd34d; }
 .status-ready { color: #3b82f6; background: #eff6ff; border: 1px solid #bfdbfe; }
-.status-processing { color: #7c3aed; background: #f5f3ff; border: 1px solid #ddd6fe; }
+.status-no-record { color: #64748b; background: #f1f5f9; border: 1px solid #e2e8f0; }
 
 /* Search Bar */
 .search-bar {
-    padding: 12px 20px;
-    width: 300px;
+    padding: 10px 15px;
+    width: 220px;
     border: 1px solid #d1d9e0;
-    border-radius: 10px;
+    border-radius: 8px;
     outline: none;
-    transition: 0.3s;
     background: white;
+    font-size: 14px;
 }
-.search-bar:focus { border-color: #3498db; box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1); }
 
-/* Table Styling - Expanded to 100% width */
+/* Table Styling - Fixed Layout for Full Screen Fit */
 .payroll-card {
     background: white;
     border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
     border: 1px solid #e2e8f0;
     width: 100%;
-    overflow-x: auto; /* Allow horizontal scroll on very small screens only */
+    overflow: hidden; /* Removes scrollbar */
 }
+
 .payroll-table { 
     width: 100%; 
     border-collapse: collapse;
-    table-layout: auto; /* Allow columns to expand based on content */
+    table-layout: fixed; /* Crucial: Forces columns to respect assigned widths */
 }
+
+/* New Column Management: Proportional width to prevent wrapping */
+.payroll-table th:nth-child(1) { width: 18%; } /* Employee */
+.payroll-table th:nth-child(2) { width: 12%; } /* Earned Salary */
+.payroll-table th:nth-child(3) { width: 9%; }  /* Festival */
+.payroll-table th:nth-child(4) { width: 9%; }  /* Other */
+.payroll-table th:nth-child(5) { width: 9%; }  /* CIT */
+.payroll-table th:nth-child(6) { width: 13%; } /* Method */
+.payroll-table th:nth-child(7) { width: 10%; } /* Status */
+.payroll-table th:nth-child(8) { width: 20%; } /* Actions - Managed space */
+
 .payroll-table th {
     background: #fdfdfd;
-    padding: 18px 15px;
+    padding: 15px 10px;
     text-align: left;
     color: #8898aa;
-    font-size: 11px;
+    font-size: 10px;
     text-transform: uppercase;
     border-bottom: 1px solid #edf2f7;
-    letter-spacing: 0.5px;
     white-space: nowrap;
 }
+
 .payroll-table td { 
-    padding: 18px 15px; 
+    padding: 12px 10px; 
     border-bottom: 1px solid #edf2f7; 
-    font-size: 14px; 
+    font-size: 13px; 
     color: #334155; 
+    overflow: hidden;
+    text-overflow: ellipsis; /* Shrinks text if space is not enough */
+    white-space: nowrap;
 }
 
-/* Row Styling */
-.table-row-hover:hover {
-    background-color: #fcfcfc;
-}
-
-.row-locked {
-    background-color: #f8fafc !important;
-}
-.row-locked td {
-    color: #94a3b8;
-}
-
-/* Bonus & CIT Inputs */
-.bonus-input-small {
-    width: 85px;
-    padding: 8px 10px;
-    border: 1px solid #cbd5e0;
-    border-radius: 8px;
-    background: white;
-    font-weight: 600;
-}
-
-.full-width-select {
-    width: 110px;
-}
-
-.locked-value {
-    font-weight: 700;
-    color: #64748b;
-    background: #f1f5f9;
-    padding: 6px 12px;
-    border-radius: 8px;
-    border: 1px dashed #cbd5e0;
-    display: inline-block;
-    font-size: 13px;
-    font-style: italic;
-}
-
-.method-label {
-    font-weight: 600;
-    color: #475569;
-    font-size: 13px;
-}
-
-/* Actions Cell - Ensure buttons stay on one line and use space */
-.actions-header {
-    text-align: right !important;
-    padding-right: 25px !important;
+/* Actions Management */
+.actions-header { 
+    text-align: right !important; 
+    padding-right: 15px !important; 
 }
 
 .actions-cell { 
     display: flex; 
-    gap: 8px; 
+    gap: 4px; /* Reduced gap to save space on single screen */
     justify-content: flex-end; 
     align-items: center;
-    padding-right: 20px !important;
-    min-width: 220px; /* Ensure enough room for three buttons */
+    padding-right: 10px !important;
 }
 
 .btn-icon {
-    padding: 8px 12px;
-    border-radius: 8px;
+    padding: 6px 8px; /* Compact padding */
+    border-radius: 6px;
     border: none;
     cursor: pointer;
-    font-size: 11px;
+    font-size: 9px; /* Smaller font for buttons to stay on one line */
     font-weight: 800;
     text-transform: uppercase;
-    transition: 0.2s;
     white-space: nowrap;
+    transition: 0.2s;
 }
-.btn-icon:hover { transform: translateY(-1px); opacity: 0.9; }
 
+.btn-icon:hover { transform: translateY(-1px); opacity: 0.9; }
 .btn-pdf { background: #2ecc71; color: white; }
 .btn-email { background: #3498db; color: white; }
 .btn-void { background: #e74c3c; color: white; }
 .btn-history { background: #64748b !important; color: white !important; }
 
-/* Modal Styles */
+/* Input Management for Shrinkage */
+.bonus-input-small {
+    width: 100%; /* Fill the column space */
+    max-width: 70px;
+    padding: 6px 8px;
+    border: 1px solid #cbd5e0;
+    border-radius: 6px;
+    background: white;
+    font-size: 12px;
+}
+
+.full-width-select {
+    width: 100%;
+    max-width: 110px;
+    font-size: 12px;
+    padding: 5px;
+}
+
+.locked-value {
+    font-weight: 700;
+    font-size: 12px;
+    color: #64748b;
+    background: #f1f5f9;
+    padding: 4px 6px;
+    border-radius: 6px;
+    border: 1px dashed #cbd5e0;
+    display: block;
+    text-align: center;
+}
+
+/* Modal & Pagination (kept as per request) */
 .modal-overlay {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
@@ -177,122 +177,79 @@
 }
 .history-modal-content {
     background: white;
-    width: 90%;
-    max-width: 1100px;
-    border-radius: 16px;
+    width: 95%;
+    max-width: 1000px;
+    border-radius: 12px;
     display: flex;
     flex-direction: column;
-    max-height: 90vh;
+    max-height: 85vh;
 }
 
 .pagination-footer {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1.5rem;
+    padding: 1rem;
     background: #fff;
     border-top: 1px solid #edf2f7;
 }
 
 .p-btn {
-    padding: 5px 12px;
+    padding: 4px 10px;
     border: 1px solid #e2e8f0;
     background: white;
+    font-size: 12px;
     border-radius: 4px;
     cursor: pointer;
 }
-.p-btn.active {
-    background: #4a90e2;
-    color: white;
-    border-color: #4a90e2;
-}
-/* --- New Concept Styles --- */
+.p-btn.active { background: #4a90e2; color: white; }
 
-/* Modal Header Layout Update */
 .modal-header {
-    padding: 24px;
+    padding: 20px;
     border-bottom: 1px solid #edf2f7;
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
-}
-
-.modal-controls {
-    display: flex;
     align-items: center;
-    gap: 15px;
 }
 
-/* Close Button Styling */
 .close-btn {
     background: #f1f5f9;
     border: 1px solid #e2e8f0;
     color: #64748b;
-    font-size: 24px;
-    width: 36px;
-    height: 36px;
-    border-radius: 8px;
+    font-size: 20px;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
+}
+.close-btn:hover { background: #fee2e2; color: #ef4444; }
+
+.filter-select {
+    padding: 8px;
+    border: 1px solid #d1d9e0;
+    border-radius: 8px;
+    background: white;
+    font-size: 13px;
     cursor: pointer;
-    transition: all 0.2s;
-    line-height: 1;
 }
 
-.close-btn:hover {
-    background: #fee2e2;
-    color: #ef4444;
-    border-color: #fecaca;
-}
-
-/* Empty State Styling */
-.empty-state {
-    padding: 40px !important;
-    text-align: center;
-    color: #94a3b8;
-    font-style: italic;
-    background: #fdfdfd;
-    font-size: 16px;
-}
-
-/* Disabled/Future Date Styling */
 button:disabled {
     background: #e2e8f0 !important;
     color: #94a3b8 !important;
     cursor: not-allowed !important;
-    transform: none !important;
     opacity: 0.7;
 }
 
-input:disabled, select:disabled {
-    background: #f8fafc !important;
-    color: #cbd5e0 !important;
-    cursor: not-allowed;
-    border-color: #e2e8f0 !important;
-}
-
-/* Row Voided Styling in History */
 .row-voided {
     background-color: #fff1f2;
     text-decoration: line-through;
     color: #fda4af;
 }
 
-/* Ensure history table fills modal */
-.modal-body {
-    padding: 0;
-    overflow-y: auto;
-}
-
-.history-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.history-table th {
-    position: sticky;
-    top: 0;
-    background: #f8fafc;
-    z-index: 10;
-}
+.modal-body { padding: 0; overflow-y: auto; }
+.history-table { width: 100%; border-collapse: collapse; }
+.history-table th { position: sticky; top: 0; background: #f8fafc; z-index: 10; padding: 12px; font-size: 11px; }
+.history-table td { padding: 12px; font-size: 13px; }

@@ -45,10 +45,17 @@ const AdminDashboard = () => {
         const token = session.jwt || session.token;
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-        // Fetch Stats
-        const statsRes = await axios.get('http://localhost:8080/api/dashboard/admin/stats', { headers });
+        // 1. Fetch Stats (Passing Date Params to make Cards Dynamic)
+        const statsRes = await axios.get('http://localhost:8080/api/dashboard/admin/stats', { 
+          headers,
+          params: {
+            day: selectedDay,
+            month: selectedMonth,
+            year: selectedYear
+          }
+        });
         
-        // Fetch Attendance with filters (Sending Day, Month, Year, and Search to Backend)
+        // 2. Fetch Attendance Records with filters
         const attendanceRes = await axios.get('http://localhost:8080/api/dashboard/recent-attendance', { 
           headers,
           params: {
@@ -61,15 +68,15 @@ const AdminDashboard = () => {
 
         if (statsRes.data) {
           setStats({
+            // These values now come from the backend filtered by the selected date
             totalWorkforce: statsRes.data.totalWorkforce || 0,
-            dailyAttendance: statsRes.data.dailyAttendance ? `${statsRes.data.dailyAttendance}` : "0",
+            dailyAttendance: statsRes.data.dailyAttendance || "0%",
             leaveRequests: (statsRes.data.leaveRequests || 0).toString().padStart(2, '0'),
             activeNow: Array.isArray(attendanceRes.data) ? attendanceRes.data.length : 0
           });
         }
 
         if (Array.isArray(attendanceRes.data)) {
-          // SORTING: Latest records first
           const sortedData = attendanceRes.data.sort((a, b) => {
              const timeA = new Date(a.checkInTime).getTime() || 0;
              const timeB = new Date(b.checkInTime).getTime() || 0;
@@ -86,7 +93,7 @@ const AdminDashboard = () => {
     };
 
     fetchDashboardData();
-  }, [selectedDay, selectedMonth, selectedYear, searchTerm]); // Refetch data when any filter changes
+  }, [selectedDay, selectedMonth, selectedYear, searchTerm]); 
 
   // Pagination Logic
   const indexOfLastRecord = currentPage * recordsPerPage;
@@ -98,7 +105,7 @@ const AdminDashboard = () => {
     { title: "TOTAL WORKFORCE", value: stats.totalWorkforce, icon: "👥", color: "#4f46e5" },
     { title: "DAILY ATTENDANCE", value: stats.dailyAttendance, icon: "📅", color: "#10b981" },
     { title: "LEAVE REQUESTS", value: stats.leaveRequests, icon: "📝", color: "#f59e0b" },
-    { title: "ACTIVE (24H)", value: stats.activeNow, icon: "⚡", color: "#ef4444" }
+    { title: "ACTIVE (DATE)", value: stats.activeNow, icon: "⚡", color: "#ef4444" }
   ];
 
   if (loading) return <div className="loader">Loading Dashboard Data...</div>;
@@ -111,6 +118,7 @@ const AdminDashboard = () => {
           <p>Real-time summary of the Payroll Management System</p>
         </div>
 
+        {/* Top Cards - Now update based on selectedDay/Month/Year */}
         <div className="top-stats-grid">
           {adminStats.map((stat, index) => (
             <div key={index} className="horizontal-stat-card" style={{ borderLeft: `5px solid ${stat.color}` }}>
@@ -129,7 +137,6 @@ const AdminDashboard = () => {
           <div className="section-header-flex">
             <h3 className="section-divider-title">Attendance History</h3>
             
-            {/* --- FILTER BAR (SAME LINE) --- */}
             <div className="filter-controls-row">
               <input 
                 type="text" 

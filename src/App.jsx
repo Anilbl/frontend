@@ -31,7 +31,7 @@ import AdminPayroll from "./pages/Admin/Payroll.jsx";
 import Report from "./pages/Admin/Report.jsx";
 import SystemConfig from "./pages/Admin/SystemConfig/System-Config.jsx";
 
-// NEW: PAYROLL PREVIEW PAGE
+// SHARED PAYROLL PREVIEW
 import PayrollPreview from "./pages/Admin/PayrollPreview.jsx"; 
 
 // EMPLOYEE
@@ -42,7 +42,11 @@ import SalaryAnalytics from "./pages/Employee/SalaryAnalytics.jsx";
 import Settings from "./pages/Employee/Settings.jsx";
 
 /* ================= PROTECTED ROUTE COMPONENT ================= */
-const ProtectedRoute = ({ allowedRole }) => {
+/**
+ * Updated to support multiple allowed roles.
+ * allowedRoles can now be a string "ROLE_ADMIN" or an array ["ROLE_ADMIN", "ROLE_ACCOUNTANT"]
+ */
+const ProtectedRoute = ({ allowedRoles }) => {
   const savedUser = localStorage.getItem("user_session");
   const user = savedUser ? JSON.parse(savedUser) : null;
 
@@ -56,15 +60,23 @@ const ProtectedRoute = ({ allowedRole }) => {
   }
 
   const userRole = userRoleRaw.toUpperCase().trim();
-  const requiredRole = allowedRole.toUpperCase().trim();
+  
+  // Convert single string to array for uniform checking
+  const rolesToCheck = Array.isArray(allowedRoles) 
+    ? allowedRoles 
+    : [allowedRoles];
 
-  const hasAccess = 
-    userRole === requiredRole || 
-    userRole === requiredRole.replace("ROLE_", "") || 
-    `ROLE_${userRole}` === requiredRole;
+  const hasAccess = rolesToCheck.some(requiredRole => {
+    const cleanRequired = requiredRole.toUpperCase().trim();
+    return (
+      userRole === cleanRequired || 
+      userRole === cleanRequired.replace("ROLE_", "") || 
+      `ROLE_${userRole}` === cleanRequired
+    );
+  });
 
   if (!hasAccess) {
-    console.error(`Access Denied: User[${userRole}] cannot access [${requiredRole}]`);
+    console.error(`Access Denied: User[${userRole}] does not have any of the required roles:`, rolesToCheck);
     return <Navigate to="/" replace />;
   }
 
@@ -87,13 +99,15 @@ function App() {
         <Route path="/reset-password" element={<ResetPassword />} />
 
         {/* ACCOUNTANT MODULE */}
-        <Route path="/accountant" element={<ProtectedRoute allowedRole="ROLE_ACCOUNTANT" />}>
+        <Route path="/accountant" element={<ProtectedRoute allowedRoles="ROLE_ACCOUNTANT" />}>
           <Route element={<AccountantLayout />}>
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<AccountantDashboard />} />
             <Route path="payroll-processing" element={<AccountantPayroll />} />
-            {/* Added Preview for Accountant */}
+            
+            {/* Shared Preview within Accountant Context */}
             <Route path="payroll-processing/preview" element={<PayrollPreview />} /> 
+            
             <Route path="salary-management" element={<Salary />} />
             <Route path="tax-compliance" element={<Tax />} />
             <Route path="financial-reports" element={<AccountantReport />} />
@@ -101,7 +115,7 @@ function App() {
         </Route>
 
         {/* ADMIN MODULE */}
-        <Route path="/admin" element={<ProtectedRoute allowedRole="ROLE_ADMIN" />}>
+        <Route path="/admin" element={<ProtectedRoute allowedRoles="ROLE_ADMIN" />}>
           <Route element={<AdminLayout />}>
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<AdminDashboard />} />
@@ -134,7 +148,7 @@ function App() {
         </Route>
 
         {/* EMPLOYEE MODULE */}
-        <Route path="/employee" element={<ProtectedRoute allowedRole="ROLE_EMPLOYEE" />}>
+        <Route path="/employee" element={<ProtectedRoute allowedRoles="ROLE_EMPLOYEE" />}>
           <Route element={<EmployeeLayout />}>
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<EmployeeDashboard />} />

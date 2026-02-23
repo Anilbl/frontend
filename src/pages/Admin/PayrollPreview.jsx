@@ -8,12 +8,21 @@ const PayrollPreview = () => {
     const navigate = useNavigate();
     const [isProcessing, setIsProcessing] = useState(false);
     
+    // Role detection for dynamic redirection
+    const userSession = JSON.parse(localStorage.getItem("user_session"));
+    const userRole = userSession?.role?.roleName || userSession?.role || "";
+    const isAccountant = userRole.toUpperCase().includes("ACCOUNTANT");
+    
+    // Dynamic Base Route: Prevents redirecting an Accountant to an Admin page (which causes login redirects)
+    const baseRoute = isAccountant ? "/accountant" : "/admin";
+    const fallbackPath = isAccountant ? "/accountant/payroll-processing" : "/admin/payroll";
+
     const data = state?.previewData;
     const selectedPaymentMethodId = state?.selectedPaymentMethodId;
 
     useEffect(() => {
-        if (!data) navigate("/admin/payroll");
-    }, [data, navigate]);
+        if (!data) navigate(fallbackPath);
+    }, [data, navigate, fallbackPath]);
 
     if (!data) return null;
 
@@ -34,7 +43,7 @@ const PayrollPreview = () => {
             "product_service_charge": "0",
             "product_delivery_charge": "0",
             "success_url": "http://localhost:8080/api/esewa/success",
-            "failure_url": `http://localhost:5173/admin/payroll?status=failed`,
+            "failure_url": `http://localhost:5173${baseRoute}/payroll?status=failed`,
             "signed_field_names": "total_amount,transaction_uuid,product_code",
             "signature": paymentData.signature,
             "customer_id": paymentData.customer_id 
@@ -52,6 +61,13 @@ const PayrollPreview = () => {
 
     const handleConfirm = async () => {
         if (isProcessing) return;
+
+        // Validation to prevent "uncontrolled input" error on backend
+        if (!selectedPaymentMethodId) {
+            alert("Payment Method ID is missing. Please go back and re-select.");
+            return;
+        }
+
         try {
             setIsProcessing(true);
             const savedPayroll = await processEmployeePayroll({
@@ -61,8 +77,10 @@ const PayrollPreview = () => {
                 citContribution: data.citContribution ?? 0,
                 paymentMethodId: selectedPaymentMethodId 
             });
+
             const actualId = savedPayroll?.payrollId || savedPayroll?.id || savedPayroll?.data?.payrollId;
-            if (!actualId) throw new Error("Invalid Payroll ID");
+            if (!actualId) throw new Error("Invalid Payroll ID received from server.");
+            
             const response = await api.get(`/esewa/initiate/${actualId}`);
             redirectToEsewa(response.data);
         } catch (err) {
@@ -83,7 +101,6 @@ const PayrollPreview = () => {
                         <span style={{ margin: '0 10px' }}>|</span>
                         <span>{data.payPeriodStart} to {data.payPeriodEnd}</span>
                     </div>
-                    {/* Added dynamic remarks for transparency */}
                     <div style={{fontSize: '12px', opacity: 0.8, marginTop: '8px'}}>{data.remarks}</div>
                 </div>
                 
@@ -148,7 +165,7 @@ const PayrollPreview = () => {
                     </div>
 
                     <div className="footer-actions" style={{ marginTop: '30px', display: 'flex', gap: '15px' }}>
-                        <button disabled={isProcessing} onClick={() => navigate("/admin/payroll")} style={btnSecondary}>Cancel & Edit</button>
+                        <button disabled={isProcessing} onClick={() => navigate(fallbackPath)} style={btnSecondary}>Cancel & Edit</button>
                         <button disabled={isProcessing} onClick={handleConfirm} style={isProcessing ? {...btnPrimary, opacity: 0.7} : btnPrimary}>
                             {isProcessing ? "Redirecting to eSewa..." : "Confirm & Disburse"}
                         </button>

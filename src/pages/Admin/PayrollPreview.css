@@ -1,5 +1,6 @@
+/* Core Wrapper */
 .payroll-preview-wrapper {
-    background-color: #f4f7f6; /* Modern light gray background */
+    background-color: #f4f7f6;
     min-height: 100vh;
     padding: 40px 20px;
     font-family: 'Segoe UI', Roboto, sans-serif;
@@ -25,13 +26,14 @@
     background: #f1c40f; color: #000; padding: 5px 15px; border-radius: 20px; font-size: 0.8rem; font-weight: bold;
 }
 
+/* Grid Layout */
 .main-preview-grid {
     display: grid;
     grid-template-columns: 300px 1fr;
     gap: 30px;
 }
 
-/* Info Panel Styling */
+/* Side Info Panel */
 .info-panel {
     background: white; padding: 30px; border-radius: 12px; height: fit-content;
     box-shadow: 0 4px 6px rgba(0,0,0,0.05); text-align: center;
@@ -49,7 +51,7 @@
     font-size: 0.8rem; color: #c0392b; text-align: left;
 }
 
-/* Payslip Card Styling */
+/* Main Payslip Card */
 .calculation-panel { display: flex; flex-direction: column; gap: 20px; }
 
 .payslip-card {
@@ -62,13 +64,22 @@
 
 .payslip-section { padding: 30px; border-bottom: 1px solid #eee; }
 
-.section-label { color: #3498db; font-weight: bold; text-transform: uppercase; font-size: 0.75rem; margin-bottom: 20px; letter-spacing: 1px; }
+.section-label { 
+    color: #3498db; font-weight: bold; text-transform: uppercase; 
+    font-size: 0.75rem; margin-bottom: 20px; letter-spacing: 1px; 
+}
 
 .payslip-row { display: flex; justify-content: space-between; margin-bottom: 12px; color: #444; }
 
-.payslip-row.highlight { font-weight: bold; font-size: 1.1rem; border-top: 1px solid #eee; padding-top: 15px; margin-top: 15px; }
+.payslip-row.highlight { 
+    font-weight: bold; font-size: 1.1rem; border-top: 1px solid #eee; 
+    padding-top: 15px; margin-top: 15px; 
+}
 
-.payslip-row.highlight-red { color: #e74c3c; font-weight: bold; border-top: 1px solid #eee; padding-top: 15px; margin-top: 15px; }
+.payslip-row.highlight-red { 
+    color: #e74c3c; font-weight: bold; border-top: 1px solid #eee; 
+    padding-top: 15px; margin-top: 15px; 
+}
 
 .neg { color: #e74c3c; }
 
@@ -79,7 +90,7 @@
 .net-pay-box h1 { font-size: 3rem; color: #2ecc71; margin: 0; letter-spacing: -1px; }
 
 /* Buttons */
-.action-footer { display: flex; gap: 20px; justify-content: flex-end; }
+.action-footer { display: flex; gap: 20px; justify-content: flex-end; margin-top: 30px;}
 
 .btn-finalize {
     background: #27ae60; color: white; border: none; padding: 15px 40px; border-radius: 8px;
@@ -87,6 +98,8 @@
 }
 
 .btn-finalize:hover { background: #219150; transform: translateY(-2px); }
+
+.btn-finalize:disabled { opacity: 0.7; cursor: not-allowed; }
 
 .btn-cancel {
     background: white; border: 1px solid #ddd; padding: 15px 30px; border-radius: 8px; cursor: pointer;

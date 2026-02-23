@@ -85,6 +85,7 @@ const HistoryModal = ({ isOpen, onClose, history, employeeName }) => {
 const PayrollManagement = () => {
   const navigate = useNavigate();
   
+  // State Management
   const [emailStatus, setEmailStatus] = useState({ loading: false, id: null });
   const [payrolls, setPayrolls] = useState([]);
   const [employees, setEmployees] = useState([]);
@@ -96,16 +97,16 @@ const PayrollManagement = () => {
   const [selectedEmpName, setSelectedEmpName] = useState("");
   const [processingInputs, setProcessingInputs] = useState({});
 
+  // Date & Status State
   const [selectedMonth, setSelectedMonth] = useState(MONTHS[new Date().getMonth()]);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
+  const [selectedStatus, setSelectedStatus] = useState("All");
 
+  // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const recordsPerPage = 10;
 
-  useEffect(() => { 
-    fetchData(); 
-  }, [selectedMonth, selectedYear]);
-
+  // Helpers
   const getMonthNumber = (monthName) => MONTHS.indexOf(monthName) + 1;
   const getPaddedMonth = (monthName) => String(getMonthNumber(monthName)).padStart(2, '0');
 
@@ -123,6 +124,7 @@ const PayrollManagement = () => {
     return selDate < currDate;
   }, [selectedMonth, selectedYear]);
 
+  // Data Fetching
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -152,6 +154,10 @@ const PayrollManagement = () => {
     }
   };
 
+  useEffect(() => { 
+    fetchData(); 
+  }, [selectedMonth, selectedYear]);
+
   const currentStatusMap = useMemo(() => {
     const map = new Map();
     const targetPeriod = `${selectedYear}-${getPaddedMonth(selectedMonth)}`; 
@@ -172,9 +178,31 @@ const PayrollManagement = () => {
 
   const filteredEmployees = useMemo(() => {
     return employees
-      .filter(e => (e.fullName || `${e.firstName} ${e.lastName}`).toLowerCase().includes(search.toLowerCase()))
+      .filter(e => {
+        const matchesSearch = (e.fullName || `${e.firstName} ${e.lastName}`).toLowerCase().includes(search.toLowerCase());
+        const record = currentStatusMap.get(String(e.empId));
+        const earnedValue = e.earnedSalary ?? e.basicSalary ?? 0;
+        
+        let currentStatus = "READY";
+        if (record) {
+          currentStatus = record.status;
+        } else if (isPastDate) {
+          currentStatus = "NO RECORD";
+        } else if (earnedValue === 0) {
+          currentStatus = "NO EARNINGS";
+        }
+
+        const matchesStatus = selectedStatus === "All" || currentStatus === selectedStatus;
+        return matchesSearch && matchesStatus;
+      })
       .sort((a, b) => b.empId - a.empId);
-  }, [employees, search]);
+  }, [employees, search, selectedStatus, currentStatusMap, isPastDate]);
+
+  const stats = useMemo(() => {
+    const total = filteredEmployees.length;
+    const paid = filteredEmployees.filter(e => currentStatusMap.get(String(e.empId))?.status === "PAID").length;
+    return { total, paid, pending: total - paid };
+  }, [filteredEmployees, currentStatusMap]);
 
   const totalPages = Math.ceil(filteredEmployees.length / recordsPerPage);
   const currentRecords = filteredEmployees.slice(
@@ -182,14 +210,14 @@ const PayrollManagement = () => {
     currentPage * recordsPerPage
   );
 
+  // Event Handlers
   const handleEmail = async (payrollId) => {
     setEmailStatus({ loading: true, id: payrollId });
     try {
       await emailPayslip(payrollId);
       alert("✅ Payslip sent successfully!");
     } catch (err) {
-      const errorMessage = err.response?.data?.message || "Check network/SMTP logs.";
-      alert(`❌ Failed to send email: ${errorMessage}`);
+      alert(`❌ Failed: ${err.response?.data?.message || "Error"}`);
     } finally {
       setEmailStatus({ loading: false, id: null });
     }
@@ -203,19 +231,28 @@ const PayrollManagement = () => {
   };
 
   const handleActionRun = async (emp) => {
+    const record = currentStatusMap.get(String(emp.empId));
     const inputs = processingInputs[emp.empId] || {};
-    if (!inputs.paymentMethodId) return alert("Please select a payment method.");
+    
+    // Priority: New typed input > Existing saved record > Default 0
+    const fBonus = inputs.festivalBonus ?? record?.festivalBonus ?? 0;
+    const oBonus = inputs.otherBonus ?? record?.otherBonuses ?? 0;
+    const cit = inputs.citContribution ?? record?.citContribution ?? 0;
+    const pMethodId = inputs.paymentMethodId || record?.paymentMethod?.paymentMethodId;
+
+    if (!pMethodId) return alert("Please select a payment method.");
+    
     try {
         const payload = {
             empId: emp.empId, 
-            festivalBonus: parseFloat(inputs.festivalBonus || 0),
-            bonuses: parseFloat(inputs.otherBonus || 0),
-            citContribution: parseFloat(inputs.citContribution || 0),
+            festivalBonus: parseFloat(fBonus),
+            bonuses: parseFloat(oBonus),
+            citContribution: parseFloat(cit),
             payPeriodStart: `${selectedYear}-${getPaddedMonth(selectedMonth)}-01`
         };
         const res = await api.post("/payrolls/preview", payload);
         navigate("/admin/payroll/preview", { 
-            state: { previewData: res.data, selectedPaymentMethodId: inputs.paymentMethodId } 
+            state: { previewData: res.data, selectedPaymentMethodId: pMethodId } 
         });
     } catch (err) { alert(err.response?.data?.message || "Run failed"); }
   };
@@ -243,29 +280,34 @@ const PayrollManagement = () => {
         <div>
           <h1 className="header-title">Payroll Command Center</h1>
           <p className="header-subtitle">
-            Current Period: <strong>{selectedMonth} {selectedYear}</strong>
+            Current Period: <strong>{selectedMonth} {selectedYear}</strong> | 
+            <span className="stats-tag"> {stats.paid}/{stats.total} Paid</span>
           </p>
         </div>
+        
         <div className="header-controls">
           <select 
-            value={selectedMonth} 
-            onChange={(e) => {setSelectedMonth(e.target.value); setCurrentPage(1);}} 
-            className="filter-select"
+            value={selectedStatus} 
+            onChange={(e) => {setSelectedStatus(e.target.value); setCurrentPage(1);}}
+            className="filter-select status-dropdown"
           >
+            <option value="All">All Statuses</option>
+            <option value="READY">Ready</option>
+            <option value="PAID">Paid</option>
+            <option value="PENDING_PAYMENT">Pending</option>
+            <option value="NO EARNINGS">No Earnings</option>
+            <option value="NO RECORD">No Record (Past)</option>
+          </select>
+
+          <select value={selectedMonth} onChange={(e) => {setSelectedMonth(e.target.value); setCurrentPage(1);}} className="filter-select">
             {MONTHS.map(m => <option key={m} value={m}>{m}</option>)}
           </select>
-          <select 
-            value={selectedYear} 
-            onChange={(e) => {setSelectedYear(e.target.value); setCurrentPage(1);}} 
-            className="filter-select"
-          >
+          
+          <select value={selectedYear} onChange={(e) => {setSelectedYear(e.target.value); setCurrentPage(1);}} className="filter-select">
             {["2024", "2025", "2026", "2027"].map(y => <option key={y} value={y}>{y}</option>)}
           </select>
-          <input 
-            className="search-bar" 
-            placeholder="Search employee..." 
-            onChange={(e)=>{setSearch(e.target.value); setCurrentPage(1);}} 
-          />
+
+          <input className="search-bar" placeholder="Search employee..." value={search} onChange={(e)=>{setSearch(e.target.value); setCurrentPage(1);}} />
         </div>
       </div>
 
@@ -286,13 +328,15 @@ const PayrollManagement = () => {
           <tbody>
             {currentRecords.length > 0 ? currentRecords.map(emp => {
               const record = currentStatusMap.get(String(emp.empId));
-              const inputs = processingInputs[emp.empId] || { festivalBonus:0, otherBonus:0, citContribution:0, paymentMethodId:"" };
+              const isPaid = record?.status === "PAID";
+              const isPending = record?.status === "PENDING_PAYMENT";
+              const isEditable = !isPaid && !isPastDate && !isFutureDate;
               
-              // Calculate earned value for current check
+              const inputs = processingInputs[emp.empId] || {};
               const earnedValue = emp.earnedSalary ?? emp.basicSalary ?? 0;
 
               return (
-                <tr key={emp.empId} className={record ? "row-locked" : "table-row-hover"}>
+                <tr key={emp.empId} className={isPaid ? "row-locked" : "table-row-hover"}>
                   <td>
                     <div className="emp-info">
                         <span className="emp-name">{emp.fullName || `${emp.firstName} ${emp.lastName}`}</span>
@@ -300,25 +344,23 @@ const PayrollManagement = () => {
                     </div>
                   </td>
 
-                  <td className="bold">
-                    Rs. {earnedValue.toLocaleString()}
-                  </td>
+                  <td className="bold">Rs. {earnedValue.toLocaleString()}</td>
                   
                   <td>
-                    {record ? <span className="locked-value">Rs. {record.festivalBonus?.toLocaleString()}</span> : 
-                    <input type="number" disabled={isFutureDate || isPastDate} className="bonus-input-small" value={inputs.festivalBonus} onChange={(e)=>handleInputChange(emp.empId, 'festivalBonus', e.target.value)}/>}
+                    {isPaid ? <span className="locked-value">Rs. {record.festivalBonus?.toLocaleString()}</span> : 
+                    <input type="number" disabled={!isEditable} className="bonus-input-small" value={inputs.festivalBonus ?? record?.festivalBonus ?? 0} onChange={(e)=>handleInputChange(emp.empId, 'festivalBonus', e.target.value)}/>}
                   </td>
                   <td>
-                    {record ? <span className="locked-value">Rs. {record.otherBonuses?.toLocaleString()}</span> : 
-                    <input type="number" disabled={isFutureDate || isPastDate} className="bonus-input-small" value={inputs.otherBonus} onChange={(e)=>handleInputChange(emp.empId, 'otherBonus', e.target.value)}/>}
+                    {isPaid ? <span className="locked-value">Rs. {record.otherBonuses?.toLocaleString()}</span> : 
+                    <input type="number" disabled={!isEditable} className="bonus-input-small" value={inputs.otherBonus ?? record?.otherBonuses ?? 0} onChange={(e)=>handleInputChange(emp.empId, 'otherBonus', e.target.value)}/>}
                   </td>
                   <td>
-                    {record ? <span className="locked-value">Rs. {record.citContribution?.toLocaleString()}</span> : 
-                    <input type="number" disabled={isFutureDate || isPastDate} className="bonus-input-small" value={inputs.citContribution} onChange={(e)=>handleInputChange(emp.empId, 'citContribution', e.target.value)}/>}
+                    {isPaid ? <span className="locked-value">Rs. {record.citContribution?.toLocaleString()}</span> : 
+                    <input type="number" disabled={!isEditable} className="bonus-input-small" value={inputs.citContribution ?? record?.citContribution ?? 0} onChange={(e)=>handleInputChange(emp.empId, 'citContribution', e.target.value)}/>}
                   </td>
                   <td>
-                    {record ? <span className="method-label">{record.paymentMethod?.methodName || "Bank"}</span> : 
-                    <select disabled={isFutureDate || isPastDate} className="filter-select full-width-select" onChange={(e)=>handleInputChange(emp.empId, 'paymentMethodId', e.target.value)}>
+                    {isPaid ? <span className="method-label">{record.paymentMethod?.methodName || "Bank"}</span> : 
+                    <select disabled={!isEditable} className="filter-select full-width-select" value={inputs.paymentMethodId || record?.paymentMethod?.paymentMethodId || ""} onChange={(e)=>handleInputChange(emp.empId, 'paymentMethodId', e.target.value)}>
                       <option value="">Select</option>
                       {paymentMethods.map(m => <option key={m.paymentMethodId} value={m.paymentMethodId}>{m.methodName}</option>)}
                     </select>}
@@ -331,25 +373,16 @@ const PayrollManagement = () => {
                   </td>
 
                   <td className="actions-cell">
-                    {!record ? (
+                    {isPending ? (
+                         <button className="btn-icon btn-pdf" onClick={()=>handleActionRun(emp)}>Resume</button>
+                    ) : !record ? (
                       !isPastDate && (
-                        /* UPDATED LOGIC: Disable if Future OR if Earned Value is 0 */
-                        <button 
-                            className="btn-icon btn-pdf" 
-                            disabled={isFutureDate || earnedValue === 0} 
-                            onClick={()=>handleActionRun(emp)}
-                        >
-                            Run
-                        </button>
+                        <button className="btn-icon btn-pdf" disabled={isFutureDate || earnedValue === 0} onClick={()=>handleActionRun(emp)}>Run</button>
                       )
-                    ) : (
+                    ) : isPaid && (
                       <>
-                        <button 
-                          className="btn-icon btn-email" 
-                          disabled={emailStatus.loading && emailStatus.id === record.payrollId} 
-                          onClick={() => handleEmail(record.payrollId)}
-                        >
-                          {emailStatus.loading && emailStatus.id === record.payrollId ? "Sending..." : "Email"}
+                        <button className="btn-icon btn-email" disabled={emailStatus.loading && emailStatus.id === record.payrollId} onClick={() => handleEmail(record.payrollId)}>
+                          {emailStatus.loading && emailStatus.id === record.payrollId ? "..." : "Email"}
                         </button>
                         <button className="btn-icon btn-void" onClick={()=>handleVoid(record)}>Void</button>
                       </>
@@ -361,7 +394,7 @@ const PayrollManagement = () => {
             }) : (
               <tr>
                 <td colSpan="8" className="empty-state">
-                  No payroll records found for {selectedMonth} {selectedYear}.
+                  No records found matching your filters for {selectedMonth}.
                 </td>
               </tr>
             )}
@@ -370,34 +403,14 @@ const PayrollManagement = () => {
 
         <div className="pagination-footer">
           <span className="header-subtitle">
-            Showing <strong>{currentRecords.length}</strong> of {filteredEmployees.length} employees
+            Showing <strong>{currentRecords.length}</strong> of {filteredEmployees.length} results
           </span>
           <div className="header-controls">
-            <button 
-                className="p-btn" 
-                disabled={currentPage === 1} 
-                onClick={()=>setCurrentPage(prev => Math.max(prev - 1, 1))}
-            >
-                Prev
-            </button>
-            
+            <button className="p-btn" disabled={currentPage === 1} onClick={()=>setCurrentPage(prev => Math.max(prev - 1, 1))}>Prev</button>
             {[...Array(totalPages)].map((_, i) => (
-              <button 
-                key={i} 
-                className={`p-btn ${currentPage === i+1 ? 'active' : ''}`} 
-                onClick={()=>setCurrentPage(i+1)}
-              >
-                {i+1}
-              </button>
+              <button key={i} className={`p-btn ${currentPage === i+1 ? 'active' : ''}`} onClick={()=>setCurrentPage(i+1)}>{i+1}</button>
             ))}
-
-            <button 
-                className="p-btn" 
-                disabled={currentPage === totalPages || totalPages === 0} 
-                onClick={()=>setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-            >
-                Next
-            </button>
+            <button className="p-btn" disabled={currentPage === totalPages || totalPages === 0} onClick={()=>setCurrentPage(prev => Math.min(prev + 1, totalPages))}>Next</button>
           </div>
         </div>
       </div>

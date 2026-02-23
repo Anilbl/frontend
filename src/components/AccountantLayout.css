@@ -5,7 +5,6 @@
   --active-indigo: #6366f1;
 }
 
-/* Container Reset */
 .accountant-container {
   display: flex;
   background-color: var(--bg-main);
@@ -13,7 +12,7 @@
   font-family: 'Inter', system-ui, sans-serif;
 }
 
-/* Sidebar with depth & fixed position */
+/* Sidebar */
 .sidebar {
   width: var(--sidebar-width);
   background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
@@ -22,26 +21,40 @@
   height: 100vh;
   display: flex;
   flex-direction: column;
-  padding: 2rem 1.5rem;
+  padding: 2rem 1.5rem; /* Balanced padding */
   box-shadow: 4px 0 15px rgba(0, 0, 0, 0.1);
   z-index: 100;
+  box-sizing: border-box;
+}
+
+/* This wrapper keeps Logo and Nav together at the top */
+.sidebar-top-section {
+  flex-grow: 1; /* This takes up all available space */
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto; /* Scrollable if menu is too long */
 }
 
 .sidebar-logo h2 {
   font-size: 1.5rem;
   letter-spacing: 2px;
-  margin-bottom: 2rem;
+  margin-bottom: 0.2rem;
   font-weight: 800;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
-  padding-bottom: 1rem;
+  color: white;
 }
 
-/* Menu items with indigo glow */
+.sidebar-logo p {
+  color: #94a3b8;
+  font-size: 0.8rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
 .sidebar-menu {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  flex-grow: 1;
 }
 
 .sidebar-menu a {
@@ -56,8 +69,8 @@
 }
 
 .sidebar-menu a:hover {
+  color: white;
   background: rgba(255, 255, 255, 0.05);
-  color: #fff;
 }
 
 .sidebar-menu a.active {
@@ -66,8 +79,15 @@
   box-shadow: inset 0 0 0 1px rgba(129, 140, 248, 0.3);
 }
 
-/* Sign Out - Bottom Aligned */
+/* Sign Out Section at the bottom */
+.sidebar-footer {
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  margin-top: auto; /* Safety margin to push to bottom */
+}
+
 .signout-btn {
+  width: 100%; /* Make button full width of sidebar padding */
   background: #ef4444;
   border: none;
   padding: 12px;
@@ -75,16 +95,19 @@
   font-weight: 700;
   color: white;
   cursor: pointer;
-  transition: transform 0.2s;
-  box-shadow: 0 4px 10px rgba(239, 68, 68, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s ease;
 }
 
 .signout-btn:hover {
-  transform: translateY(-2px);
   background: #dc2626;
+  transform: translateY(-1px);
 }
 
-/* Main Content: Corrected Offset */
+/* MAIN CONTENT */
 .main-content {
   margin-left: var(--sidebar-width);
   flex-grow: 1;
@@ -93,27 +116,54 @@
 }
 
 .top-header {
-  padding: 1rem 3rem;
+  padding: 0.75rem 3rem;
   background: white;
   border-bottom: 1px solid #e2e8f0;
   display: flex;
-  justify-content: flex-end; /* Aligns user info to right */
+  justify-content: space-between; 
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 90;
+}
+
+.dynamic-title {
+  font-size: 1.1rem;
+  color: #1e293b;
+  font-weight: 700;
+  margin: 0;
 }
 
 .user-info {
   display: flex;
   align-items: center;
   gap: 12px;
-  background: #f1f5f9;
-  padding: 10px 20px;
-  border-radius: 30px;
-  font-weight: 500;
-  color: #334155;
+  background: #f8fafc;
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+}
+
+.user-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.u-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.2;
+}
+
+.u-dept {
+  font-size: 0.7rem;
+  color: #64748b;
 }
 
 .status-indicator-active {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   background: #22c55e;
   border-radius: 50%;
   animation: pulse 2s infinite;
@@ -121,10 +171,10 @@
 
 @keyframes pulse {
   0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
-  70% { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
+  70% { box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
   100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
 }
 
 .page-body {
-  padding: 3rem;
+  padding: 2rem 3rem; 
 }
