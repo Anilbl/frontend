@@ -11,60 +11,64 @@ const AccountantLayout = () => {
     navigate("/");
   };
 
-  const menuItems = [
-    { path: 'dashboard', label: 'Dashboard', icon: '📊' },
-    { path: 'salary-management', label: 'Salary Management', icon: '💸' },
-    { path: 'payroll-processing', label: 'Payroll Center', icon: '⚙️' },
-    { path: 'tax-compliance', label: 'Tax & Compliance', icon: '📋' },
-    { path: 'financial-reports', label: 'Reports', icon: '📈' },
-  ];
-
   const getPageTitle = () => {
-    const path = location.pathname.split('/').pop();
-    return path.replace(/-/g, ' ').toUpperCase();
+    const path = location.pathname;
+    if (path.includes('dashboard')) return 'Financial Dashboard';
+    if (path.includes('payroll')) return 'Payroll Verification';
+    if (path.includes('salary')) return 'Salary Structure';
+    if (path.includes('tax')) return 'Tax & Compliance';
+    return 'Finance Portal';
   };
 
   return (
-    <div className="app-shell">
-      <aside className="app-sidebar">
-        <div className="sidebar-brand">
-          <div className="brand-logo">N</div>
-          <h1>NAST Payroll</h1>
-        </div>
-        <nav className="sidebar-nav">
-          {menuItems.map((item) => (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={`nav-item ${location.pathname.includes(item.path) ? 'active' : ''}`}
-            >
-              <span className="nav-icon">{item.icon}</span>
-              <span className="nav-label">{item.label}</span>
+    <div className="accountant-container">
+      <aside className="sidebar">
+        <div className="sidebar-content-wrapper">
+          <div className="sidebar-logo">
+            <h2>Centralized Management</h2>
+            <p>Payroll System</p>
+          </div>
+
+          <nav className="sidebar-menu">
+            <Link to="dashboard" className={location.pathname.includes('dashboard') ? 'active' : ''}>
+              🏠 Dashboard
             </Link>
-          ))}
-        </nav>
+            <Link to="salary-management" className={location.pathname.includes('salary') ? 'active' : ''}>
+              💸 Salary Management
+            </Link>
+            {/* The link below will trigger the PayrollManagement component via the Router */}
+            <Link to="payroll-processing" className={location.pathname.includes('payroll') ? 'active' : ''}>
+              💰 Payroll Processing
+            </Link>
+            <Link to="tax-compliance" className={location.pathname.includes('tax') ? 'active' : ''}>
+              📄 Tax & Compliance
+            </Link>
+          </nav>
+        </div>
+
         <div className="sidebar-footer">
-          <button className="logout-action" onClick={handleSignOut}>Sign Out</button>
+          <button className="signout-btn" onClick={handleSignOut}>
+            🚪 Sign Out
+          </button>
         </div>
       </aside>
 
-      <main className="app-main">
-        <header className="app-header">
-          <div className="header-context">
-            <span className="breadcrumb">Accountant / {getPageTitle()}</span>
+      <main className="main-content">
+        <header className="top-header">
+          <div className="header-left">
+            <h3 className="dynamic-title">{getPageTitle()}</h3>
           </div>
-          <div className="header-profile">
-            <div className="profile-pill-accountant">
-              <span className="online-status"></span>
-              <div className="profile-meta">
-                <strong>Finance Accountant</strong>
-                <small>Treasury Dept</small>
-              </div>
-            </div>
+          
+          <div className="user-info">
+             <div className="status-indicator-active"></div>
+             <div className="user-text">
+                <span className="u-name">Finance Accountant</span>
+                <span className="u-dept">Treasury Dept</span>
+             </div>
           </div>
         </header>
 
-        <section className="app-content">
+        <section className="page-body">
           <Outlet />
         </section>
       </main>
