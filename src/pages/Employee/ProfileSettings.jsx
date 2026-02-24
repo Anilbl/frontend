@@ -1,8 +1,27 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import "./ProfileSettings.css";
 
+const API_BASE = "http://localhost:8080/api/employees";
+
 const ProfileSettings = () => {
+
+  // =========================
+  // SESSION
+  // =========================
+  const session = JSON.parse(localStorage.getItem("user_session") || "{}");
+  const empId = session.empId;
+  const token = session.token || session.jwt;
+
+  const authHeader = {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  };
+
+  // =========================
+  // STATES
+  // =========================
   const [profile, setProfile] = useState({
     firstName: "",
     lastName: "",
@@ -14,6 +33,7 @@ const ProfileSettings = () => {
   });
 
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
 
   const [passwordData, setPasswordData] = useState({
@@ -22,91 +42,73 @@ const ProfileSettings = () => {
     confirmPassword: ""
   });
 
+  const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordMessage, setPasswordMessage] = useState("");
 
-  const fetchProfile = useCallback(async () => {
-    setLoading(true);
+  // =========================
+  // FETCH PROFILE
+  // =========================
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!empId || !token) {
+        setMessage("❌ Session expired. Please login again.");
+        setLoading(false);
+        return;
+      }
 
-    const sessionData = localStorage.getItem("user_session");
+      try {
+        const res = await axios.get(
+          `${API_BASE}/${empId}`,
+          authHeader
+        );
 
-    if (!sessionData) {
-      setLoading(false);
-      setMessage("Session Error: No session found. Please log in.");
-      return;
-    }
-
-    const session = JSON.parse(sessionData);
-    const targetId = session.empId;
-
-    if (!targetId) {
-      setLoading(false);
-      setMessage("No Employee ID found in session. Please Reset.");
-      return;
-    }
-
-    try {
-      const token = session.token || session.jwt;
-
-      const res = await axios.get(
-        `http://localhost:8080/api/employees/profile/${targetId}`,
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      );
-
-      if (res.data) {
         setProfile({
           ...res.data,
           emailNotifications: res.data.emailNotifications ?? false
         });
-        setMessage("");
-      } else {
-        setMessage("Profile record not found.");
+
+      } catch (err) {
+        console.error(err);
+        setMessage("❌ Failed to load profile.");
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error(err);
-      setMessage("Session out of sync with database.");
-    } finally {
-      setLoading(false);
-    }
+    };
+
+    fetchProfile();
   }, []);
 
-  useEffect(() => {
-    fetchProfile();
-  }, [fetchProfile]);
-
-  // ============================
+  // =========================
   // UPDATE PROFILE
-  // ============================
-
-  const handleUpdate = async (e) => {
+  // =========================
+  const handleProfileUpdate = async (e) => {
     e.preventDefault();
-
-    const sessionData = localStorage.getItem("user_session");
-    if (!sessionData) return;
-
-    const session = JSON.parse(sessionData);
+    setSaving(true);
+    setMessage("");
 
     try {
       await axios.put(
-        `http://localhost:8080/api/employees/profile/update/${session.empId}`,
+        `${API_BASE}/${empId}`,
         profile,
-        {
-          headers: { Authorization: `Bearer ${session.token || session.jwt}` }
-        }
+        authHeader
       );
 
       setMessage("✅ Profile updated successfully!");
-      setTimeout(() => setMessage(""), 3000);
+
     } catch (err) {
-      setMessage("❌ Update failed. Check backend.");
+      setMessage(
+        err.response?.data?.message ||
+        "❌ Failed to update profile."
+      );
+    } finally {
+      setSaving(false);
+      setTimeout(() => setMessage(""), 3000);
     }
   };
 
-  // ============================
+  // =========================
   // CHANGE PASSWORD
-  // ============================
-
+  // =========================
   const handleChangePassword = async (e) => {
     e.preventDefault();
 
@@ -115,233 +117,200 @@ const ProfileSettings = () => {
       return;
     }
 
-    const sessionData = localStorage.getItem("user_session");
-    if (!sessionData) return;
-
-    const session = JSON.parse(sessionData);
+    setPasswordLoading(true);
+    setPasswordMessage("");
 
     try {
       await axios.put(
-        `http://localhost:8080/api/employees/change-password/${session.empId}`,
+        `${API_BASE}/change-password/${empId}`,
         {
           currentPassword: passwordData.currentPassword,
           newPassword: passwordData.newPassword
         },
-        {
-          headers: { Authorization: `Bearer ${session.token || session.jwt}` }
-        }
+        authHeader
       );
 
       setPasswordMessage("✅ Password changed successfully!");
+
       setPasswordData({
         currentPassword: "",
         newPassword: "",
         confirmPassword: ""
       });
 
-      setTimeout(() => setPasswordMessage(""), 3000);
     } catch (err) {
-      setPasswordMessage("❌ Password change failed.");
+      setPasswordMessage(
+        err.response?.data ||
+        "❌ Password change failed."
+      );
+    } finally {
+      setPasswordLoading(false);
+      setTimeout(() => setPasswordMessage(""), 3000);
     }
   };
 
-  // ============================
+  // =========================
   // EMAIL TOGGLE
-  // ============================
-
+  // =========================
   const handleToggleEmail = async () => {
-    const sessionData = localStorage.getItem("user_session");
-    if (!sessionData) return;
-
-    const session = JSON.parse(sessionData);
     const newValue = !profile.emailNotifications;
 
     try {
       await axios.put(
-        `http://localhost:8080/api/employees/email-preference/${session.empId}`,
+        `${API_BASE}/email-preference/${empId}`,
         { emailNotifications: newValue },
-        {
-          headers: { Authorization: `Bearer ${session.token || session.jwt}` }
-        }
+        authHeader
       );
 
       setProfile({ ...profile, emailNotifications: newValue });
+
     } catch (err) {
       console.error("Email preference update failed");
     }
   };
 
-  const handleLogoutFix = () => {
-    localStorage.removeItem("user_session");
-    window.location.href = "/login";
-  };
-
+  // =========================
+  // LOADING SCREEN
+  // =========================
   if (loading) {
     return (
       <div style={{ padding: "40px", textAlign: "center" }}>
-        <div className="spinner"></div>
-        <p>Fetching your profile data...</p>
+        <h3>Loading profile...</h3>
       </div>
     );
   }
 
+  // =========================
+  // UI
+  // =========================
   return (
     <div className="profile-settings-container">
       <div className="profile-card">
-        {/* ================= Sidebar ================= */}
+
+        {/* Sidebar */}
         <div className="profile-sidebar">
           <div className="avatar-circle">
-            {profile.firstName?.charAt(0) || "U"}
-            {profile.lastName?.charAt(0) || ""}
+            {profile.firstName?.charAt(0)}
+            {profile.lastName?.charAt(0)}
           </div>
 
-          <h3>
-            {profile.firstName || "User"} {profile.lastName || ""}
-          </h3>
-
-          <p className="role-tag">
-            {profile.position?.designationTitle || "Staff Member"}
-          </p>
-
-          {(message.includes("ID") || message.includes("sync")) && (
-            <button onClick={handleLogoutFix} className="fix-session-btn">
-              Reset Session & Log In
-            </button>
-          )}
+          <h3>{profile.firstName} {profile.lastName}</h3>
+          <p>{profile.position?.designationTitle}</p>
         </div>
 
-        {/* ================= Main Form ================= */}
+        {/* Main Content */}
         <div className="profile-main-form">
 
-          {/* Account Info */}
-          <form onSubmit={handleUpdate}>
-            <div className="form-section">
-              <h4>Account Information</h4>
+          {/* PROFILE UPDATE */}
+          <form onSubmit={handleProfileUpdate} className="form-section">
+            <h4>Account Information</h4>
 
-              <div className="input-group">
-                <label>Email</label>
-                <input type="email" value={profile.email} disabled />
-              </div>
-
-              <div className="input-group">
-                <label>Contact Number</label>
-                <input
-                  type="text"
-                  value={profile.contactNumber || ""}
-                  onChange={(e) =>
-                    setProfile({ ...profile, contactNumber: e.target.value })
-                  }
-                />
-              </div>
-
-              <div className="input-group">
-                <label>Address</label>
-                <input
-                  type="text"
-                  value={profile.address || ""}
-                  onChange={(e) =>
-                    setProfile({ ...profile, address: e.target.value })
-                  }
-                />
-              </div>
-
-              <button type="submit" className="update-profile-btn">
-                Save Changes
-              </button>
-
-              {message && (
-                <p
-                  className={`form-feedback ${
-                    message.includes("✅") ? "success" : "error"
-                  }`}
-                >
-                  {message}
-                </p>
-              )}
+            <div className="input-group">
+              <label>Email</label>
+              <input type="email" value={profile.email} disabled />
             </div>
+
+            <div className="input-group">
+              <label>Contact Number</label>
+              <input
+                type="text"
+                value={profile.contactNumber || ""}
+                onChange={(e) =>
+                  setProfile({ ...profile, contactNumber: e.target.value })
+                }
+              />
+            </div>
+
+            <div className="input-group">
+              <label>Address</label>
+              <input
+                type="text"
+                value={profile.address || ""}
+                onChange={(e) =>
+                  setProfile({ ...profile, address: e.target.value })
+                }
+              />
+            </div>
+
+            <button type="submit" disabled={saving}>
+              {saving ? "Saving..." : "Save Changes"}
+            </button>
+
+            {message && <p className="form-feedback">{message}</p>}
           </form>
 
-          {/* Change Password */}
-          <div className="form-section">
+          {/* CHANGE PASSWORD */}
+          <form onSubmit={handleChangePassword} className="form-section">
             <h4>Security - Change Password</h4>
 
-            <form onSubmit={handleChangePassword}>
-              <div className="input-group">
-                <label>Current Password</label>
-                <input
-                  type="password"
-                  value={passwordData.currentPassword}
-                  onChange={(e) =>
-                    setPasswordData({
-                      ...passwordData,
-                      currentPassword: e.target.value
-                    })
-                  }
-                  required
-                />
-              </div>
+            <div className="input-group">
+              <label>Current Password</label>
+              <input
+                type="password"
+                value={passwordData.currentPassword}
+                onChange={(e) =>
+                  setPasswordData({
+                    ...passwordData,
+                    currentPassword: e.target.value
+                  })
+                }
+                required
+              />
+            </div>
 
-              <div className="input-group">
-                <label>New Password</label>
-                <input
-                  type="password"
-                  value={passwordData.newPassword}
-                  onChange={(e) =>
-                    setPasswordData({
-                      ...passwordData,
-                      newPassword: e.target.value
-                    })
-                  }
-                  required
-                />
-              </div>
+            <div className="input-group">
+              <label>New Password</label>
+              <input
+                type="password"
+                value={passwordData.newPassword}
+                onChange={(e) =>
+                  setPasswordData({
+                    ...passwordData,
+                    newPassword: e.target.value
+                  })
+                }
+                required
+              />
+            </div>
 
-              <div className="input-group">
-                <label>Confirm Password</label>
-                <input
-                  type="password"
-                  value={passwordData.confirmPassword}
-                  onChange={(e) =>
-                    setPasswordData({
-                      ...passwordData,
-                      confirmPassword: e.target.value
-                    })
-                  }
-                  required
-                />
-              </div>
+            <div className="input-group">
+              <label>Confirm Password</label>
+              <input
+                type="password"
+                value={passwordData.confirmPassword}
+                onChange={(e) =>
+                  setPasswordData({
+                    ...passwordData,
+                    confirmPassword: e.target.value
+                  })
+                }
+                required
+              />
+            </div>
 
-              <button type="submit" className="update-profile-btn">
-                Update Password
-              </button>
+            <button type="submit" disabled={passwordLoading}>
+              {passwordLoading ? "Updating..." : "Update Password"}
+            </button>
 
-              {passwordMessage && (
-                <p
-                  className={`form-feedback ${
-                    passwordMessage.includes("✅")
-                      ? "success"
-                      : "error"
-                  }`}
-                >
-                  {passwordMessage}
-                </p>
-              )}
-            </form>
-          </div>
+            {passwordMessage && (
+              <p className="form-feedback">{passwordMessage}</p>
+            )}
+          </form>
 
-          {/* Email Preference */}
+          {/* EMAIL NOTIFICATION */}
           <div className="form-section">
             <h4>Email Notifications</h4>
 
-            <div className="toggle-container">
-              <label>Receive Payslip & Leave Alerts</label>
+            <label>
               <input
                 type="checkbox"
-                checked={profile.emailNotifications}
+                checked={profile.emailNotifications || false}
                 onChange={handleToggleEmail}
               />
-            </div>
+              Receive Payslip & Leave Alerts
+            </label>
           </div>
+
         </div>
       </div>
     </div>

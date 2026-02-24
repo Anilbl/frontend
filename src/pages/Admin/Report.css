@@ -109,3 +109,80 @@
 @media (max-width: 1024px) {
   .main-content-grid { grid-template-columns: 1fr; }
 }
+.dept-report-row {
+    padding: 12px 0;
+    border-bottom: 1px solid #f1f5f9;
+}
+.dept-badge-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.dept-main-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+.count-badge.total {
+    color: #64748b; /* Grey for total */
+}
+.count-badge.paid {
+    color: #10b981; /* Green for paid */
+}
+.dept-name-label {
+    font-weight: 700;
+    color: #1e293b;
+    font-size: 0.95rem;
+}
+
+.dept-emp-pill {
+    background: #f1f5f9;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    color: #64748b;
+    font-weight: 600;
+}
+
+.dept-financial-detail {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 8px;
+}
+
+.detail-item .tiny-label {
+    display: block;
+    font-size: 0.7rem;
+    color: #94a3b8;
+    text-transform: uppercase;
+}
+
+.detail-item .value-bold {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #475569;
+}
+
+.report-progress-bar {
+    height: 8px;
+    background: #e2e8f0;
+    border-radius: 4px;
+    margin-top: 10px;
+}
+
+.report-progress-bar .fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.loader-mini {
+    text-align: center;
+    padding: 20px;
+    color: #6366f1;
+    font-weight: 600;
+}

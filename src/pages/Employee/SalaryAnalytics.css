@@ -29,6 +29,15 @@
   border: 1px solid #f1f5f9;
 }
 
+.month-select:focus {
+  outline: none;
+  border-color: #4f46e5;
+}
+.download-btn:hover {
+  background: #4338ca;
+  transition: background 0.2s ease;
+}
+
 .glass-card h3 {
   font-size: 1.1rem;
   color: #1e293b;

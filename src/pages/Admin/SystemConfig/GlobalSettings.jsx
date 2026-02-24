@@ -1,17 +1,19 @@
 import React, { useEffect, useState } from "react";
-import api from "../../../api/axios"; // Updated import to your token-enabled axios
+import api from "../../../api/axios"; // Your token-enabled axios instance
 import ConfirmModal from "../../../components/ConfirmModal";
+import "./System-Config.css";
 
 export default function GlobalSettings() {
   const [configs, setConfigs] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [addingNew, setAddingNew] = useState(false);
+  const [loading, setLoading] = useState(true);
 
+  // Simplified form data: Backend handles ID, updatedBy, and timestamp
   const [formData, setFormData] = useState({
     keyName: "",
     value: "",
-    description: "",
-    updatedBy: { userId: 1 } // Ideally get this from session
+    description: ""
   });
 
   const [showConfirm, setShowConfirm] = useState(false);
@@ -23,55 +25,53 @@ export default function GlobalSettings() {
 
   const fetchConfigs = async () => {
     try {
-      const res = await api.get("/system-config"); // token-based request
-      setConfigs(Array.isArray(res.data) ? res.data : [res.data]);
+      const res = await api.get("/system-config");
+      setConfigs(res.data);
+      setLoading(false);
     } catch (err) {
-      console.error("Fetch Error:", err.response?.data || err.message);
+      console.error("Fetch Error:", err);
+      setLoading(false);
     }
   };
 
-  const saveAction = async (id) => {
+  const saveAction = async () => {
     if (!formData.keyName || !formData.value) {
       alert("Key Name and Value are required");
       return;
     }
     try {
-      if (addingNew) {
-        await api.post("/system-config", formData);
-      } else {
-        await api.put(`/system-config/${id}`, formData);
-      }
+      // We use POST for both create and update. 
+      // The backend service now checks if keyName exists and updates accordingly.
+      await api.post("/system-config", formData);
       fetchConfigs();
       cancel();
     } catch (err) {
-      console.error("Save Error:", err.response?.data || err.message);
-      alert("Save failed. Ensure Key Name is unique and UpdatedBy ID is valid.");
+      const errorMsg = err.response?.data?.message || "Check Unique Key and Permissions";
+      alert("Save failed: " + errorMsg);
     }
   };
 
   const cancel = () => {
     setEditingId(null);
     setAddingNew(false);
-    setFormData({ keyName: "", value: "", description: "", updatedBy: { userId: 1 } });
+    setFormData({ keyName: "", value: "", description: "" });
   };
 
   const startEdit = (conf) => {
     setEditingId(conf.configId);
     setAddingNew(false);
     setFormData({
-      configId: conf.configId,
       keyName: conf.keyName,
       value: conf.value,
-      description: conf.description,
-      updatedBy: { userId: conf.updatedBy?.userId || 1 }
+      description: conf.description
     });
   };
 
-  const getEmployeeName = (conf) => {
-    const emp = conf.updatedBy?.employee;
-    if (emp && emp.firstName) return `${emp.firstName} ${emp.lastName || ""}`;
+  const getDisplayName = (conf) => {
     return conf.updatedBy?.username || "System Admin";
   };
+
+  if (loading) return <div className="placeholder-container">Loading...</div>;
 
   return (
     <div className="org-section global-settings-theme">
@@ -102,7 +102,7 @@ export default function GlobalSettings() {
                     placeholder="KEY_NAME"
                     value={formData.keyName}
                     onChange={e => setFormData({ ...formData, keyName: e.target.value.toUpperCase() })}
-                    disabled={!!editingId}
+                    disabled={!!editingId} // Key cannot be changed once created
                   />
                 </td>
                 <td>
@@ -122,7 +122,7 @@ export default function GlobalSettings() {
                 <td className="read-only-id">Session User</td>
                 <td className="read-only-id">Auto</td>
                 <td style={{ textAlign: 'center' }}>
-                  <button className="btn-small save" onClick={() => saveAction(editingId)}>Save</button>
+                  <button className="btn-small save" onClick={saveAction}>Save</button>
                   <button className="btn-small cancel" onClick={cancel}>Cancel</button>
                 </td>
               </tr>
@@ -135,7 +135,7 @@ export default function GlobalSettings() {
                   <td style={{ fontFamily: 'monospace', fontWeight: 'bold' }}>{conf.keyName}</td>
                   <td><span className="type-badge">{conf.value}</span></td>
                   <td>{conf.description}</td>
-                  <td><span className="user-pill">{getEmployeeName(conf)}</span></td>
+                  <td><span className="user-pill">{getDisplayName(conf)}</span></td>
                   <td><small>{conf.updatedAt ? new Date(conf.updatedAt).toLocaleString() : 'N/A'}</small></td>
                   <td style={{ textAlign: 'center' }}>
                     <button className="btn-small update" onClick={() => startEdit(conf)}>Edit</button>
@@ -144,14 +144,6 @@ export default function GlobalSettings() {
                 </tr>
               )
             ))}
-
-            {configs.length === 0 && !addingNew && (
-              <tr>
-                <td colSpan="7" style={{ textAlign: 'center', padding: '20px', color: '#999' }}>
-                  No system configurations found.
-                </td>
-              </tr>
-            )}
           </tbody>
         </table>
       </div>
@@ -164,12 +156,11 @@ export default function GlobalSettings() {
             fetchConfigs();
             setShowConfirm(false);
           } catch (err) {
-            console.error("Delete failed:", err.response?.data || err.message);
             alert("Delete failed");
           }
         }}
         onCancel={() => setShowConfirm(false)}
-        message="Are you sure you want to delete this configuration? This might affect payroll logic."
+        message="Are you sure? This may affect payroll logic."
       />
     </div>
   );

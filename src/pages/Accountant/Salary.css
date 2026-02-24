@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 .prof-container {
     padding: 2rem;
     max-width: 1200px;
@@ -37,9 +38,67 @@
     font-size: 1.8rem;
 }
 
+=======
+.prof-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.date-selectors {
+    display: flex;
+    gap: 10px;
+}
+
+.date-selectors select {
+    padding: 10px 15px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    background: white;
+    font-weight: 600;
+    color: #1e293b;
+    outline: none;
+    cursor: pointer;
+}
+
+.metrics-grid { 
+    display: grid; 
+    grid-template-columns: repeat(3, 1fr); 
+    gap: 1.5rem; 
+    margin-bottom: 1.5rem; 
+}
+
+/* Secondary Grid has 4 columns for the new items */
+.secondary-metrics {
+    grid-template-columns: repeat(4, 1fr);
+}
+
+.metric-card { 
+    background: white; 
+    padding: 1.5rem; 
+    border-radius: 12px; 
+    border: 1px solid #e2e8f0; 
+    border-top: 4px solid #4f46e5; 
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.metric-card span { color: #64748b; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+.metric-card h2 { margin: 8px 0 0 0; color: #0f172a; font-size: 1.6rem; }
+.metric-card h3 { margin: 8px 0 0 0; color: #1e293b; font-size: 1.2rem; }
+
+/* Border Colors */
+>>>>>>> b35b79e1a86c81143135928d8198d847a383043c
 .red-border { border-top-color: #ef4444; }
 .green-border { border-top-color: #22c55e; }
+.orange-border { border-top-color: #f59e0b; }
+.blue-border { border-top-color: #3b82f6; }
+.purple-border { border-top-color: #a855f7; }
+.dark-border { border-top-color: #1e293b; }
 
+.loader { padding: 40px; text-align: center; color: #6366f1; font-weight: 600; }
+
+<<<<<<< HEAD
 /* Department List Section */
 .prof-card {
     background: white;
@@ -47,6 +106,12 @@
     border: 1px solid #e2e8f0;
     overflow: hidden;
 }
+=======
+.dept-list { padding: 0.5rem 1.5rem; }
+.dept-row { display: flex; justify-content: space-between; align-items: center; padding: 1.5rem 0; border-bottom: 1px solid #f1f5f9; }
+.dept-info h4 { margin: 0; color: #0f172a; font-size: 1.05rem; }
+.dept-info p { margin: 4px 0 0 0; color: #64748b; font-size: 0.9rem; }
+>>>>>>> b35b79e1a86c81143135928d8198d847a383043c
 
 .card-header {
     padding: 1.25rem 1.5rem;

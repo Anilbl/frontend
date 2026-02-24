@@ -19,7 +19,6 @@ const AccountantLayout = () => {
     { path: 'financial-reports', label: 'Reports', icon: '📈' },
   ];
 
-  // Logic to determine page title based on path
   const getPageTitle = () => {
     const path = location.pathname.split('/').pop();
     return path.replace(/-/g, ' ').toUpperCase();
@@ -34,9 +33,9 @@ const AccountantLayout = () => {
         </div>
         <nav className="sidebar-nav">
           {menuItems.map((item) => (
-            <Link 
+            <Link
               key={item.path}
-              to={item.path} 
+              to={item.path}
               className={`nav-item ${location.pathname.includes(item.path) ? 'active' : ''}`}
             >
               <span className="nav-icon">{item.icon}</span>
@@ -45,12 +44,11 @@ const AccountantLayout = () => {
           ))}
         </nav>
         <div className="sidebar-footer">
-          <button className="logout-action" onClick={handleSignOut}> Sign Out </button>
+          <button className="logout-action" onClick={handleSignOut}>Sign Out</button>
         </div>
       </aside>
 
       <main className="app-main">
-        {/* ONLY ONE HEADER HERE */}
         <header className="app-header">
           <div className="header-context">
             <span className="breadcrumb">Accountant / {getPageTitle()}</span>

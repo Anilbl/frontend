@@ -13,202 +13,143 @@ import {
 import api from "../../api/axios";
 import "./Report.css";
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Tooltip,
-  Legend,
-  PointElement,
-  LineElement
-);
+ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend, PointElement, LineElement);
 
 export default function Report() {
   const currentYear = new Date().getFullYear();
-  const currentMonth = new Date().getMonth() + 1;
+  const currentMonthIdx = new Date().getMonth();
+  const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
   const [year, setYear] = useState(currentYear);
-  const [month, setMonth] = useState(currentMonth);
+  const [monthName, setMonthName] = useState(months[currentMonthIdx]);
+  const [loading, setLoading] = useState(false);
 
-  const [payrollSummary, setPayrollSummary] = useState({
-    totalEmployees: 0,
-    monthlyPayroll: 0,
-    totalDeductions: 0,
-    totalAllowances: 0,
-    pendingLeaves: 0
+  const [stats, setStats] = useState({
+    totalGross: 0,
+    totalNet: 0,
+    totalTax: 0,
+    paidCount: 0, // This is the global count of paid records
+    departments: [] 
   });
 
   const [monthlyPayrollData, setMonthlyPayrollData] = useState([]);
-  const [attendanceSummary, setAttendanceSummary] = useState({
-    presentDays: 0,
-    absentDays: 0,
-    leaveDays: 0
-  });
 
   useEffect(() => {
-    fetchPayrollData();
-  }, [year]);
+    fetchReportData();
+  }, [year, monthName]);
 
-  useEffect(() => {
-    fetchAttendanceData();
-  }, [year, month]);
-
-  const fetchPayrollData = async () => {
+  const fetchReportData = async () => {
+    setLoading(true);
     try {
-      const [summaryRes, monthlyRes] = await Promise.all([
-        api.get(`/reports/analytics/summary?year=${year}`),
+      const monthNum = months.indexOf(monthName) + 1;
+      const [summaryRes, chartRes] = await Promise.all([
+        api.get('/payrolls/salary-summary', { params: { month: monthNum, year: year } }),
         api.get(`/reports/analytics/monthly-payroll?year=${year}`)
       ]);
-      setPayrollSummary(summaryRes.data);
-      setMonthlyPayrollData(monthlyRes.data);
+
+      setStats(summaryRes.data);
+      setMonthlyPayrollData(chartRes.data);
     } catch (error) {
-      console.error(error);
+      console.error("Error fetching report analytics:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const fetchAttendanceData = async () => {
-    try {
-      const res = await api.get(
-        `/reports/attendance/summary?year=${year}&month=${month}`
-      );
-      setAttendanceSummary(res.data);
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  const payrollChart = {
-    labels: monthlyPayrollData.map(item => item.month),
-    datasets: [
-      {
-        label: "Expenditure (NPR)",
-        data: monthlyPayrollData.map(item => item.amount),
-        backgroundColor: "rgba(25, 118, 210, 0.8)",
-        borderRadius: 6,
-        hoverBackgroundColor: "#1976d2"
-      }
-    ]
+  const formatCurrency = (num) => {
+    return new Intl.NumberFormat('en-NP', {
+      style: 'currency', currency: 'NPR', minimumFractionDigits: 0
+    }).format(num || 0).replace("NPR", "Rs.");
   };
 
   return (
     <div className="report-container">
-      {/* 1. TOP TOOLBAR */}
       <div className="report-toolbar">
         <div className="text-content">
           <h1>Analytics Overview</h1>
-          <p>Real-time payroll & attendance insights</p>
+          <p>Financial Distribution for <strong>{monthName} {year}</strong></p>
         </div>
 
         <div className="filter-group">
           <div className="select-box">
             <span>Year</span>
             <select value={year} onChange={e => setYear(Number(e.target.value))}>
-              {[0, 1, 2, 3, 4].map(i => (
-                <option key={i} value={currentYear - i}>
-                  {currentYear - i}
-                </option>
-              ))}
+              {[0, 1, 2, 3, 4].map(i => <option key={i} value={currentYear - i}>{currentYear - i}</option>)}
             </select>
           </div>
-
           <div className="select-box">
             <span>Month</span>
-            <select value={month} onChange={e => setMonth(Number(e.target.value))}>
-              {Array.from({ length: 12 }, (_, i) => (
-                <option key={i + 1} value={i + 1}>
-                  {new Date(0, i).toLocaleString("default", { month: "long" })}
-                </option>
-              ))}
+            <select value={monthName} onChange={e => setMonthName(e.target.value)}>
+              {months.map(m => <option key={m} value={m}>{m}</option>)}
             </select>
           </div>
-
-          {/* ❌ Download button removed */}
         </div>
       </div>
 
-      {/* 2. TOP STATS RIBBON */}
       <div className="stats-ribbon">
-        <StatItem
-          title="Staff Count"
-          value={payrollSummary.totalEmployees}
-          icon="👥"
-          color="#3b82f6"
-        />
-        <StatItem
-          title="Total Payroll"
-          value={`Rs. ${payrollSummary.monthlyPayroll?.toLocaleString()}`}
-          icon="💰"
-          color="#10b981"
-        />
-        <StatItem
-          title="Deductions"
-          value={`Rs. ${payrollSummary.totalDeductions?.toLocaleString()}`}
-          icon="📉"
-          color="#ef4444"
-        />
-        <StatItem
-          title="Allowances"
-          value={`Rs. ${payrollSummary.totalAllowances?.toLocaleString()}`}
-          icon="🧾"
-          color="#8b5cf6"
-        />
+        <StatItem title="Global Paid Count" value={stats.paidCount} icon="👥" color="#3b82f6" />
+        <StatItem title="Total Gross Payroll" value={formatCurrency(stats.totalGross)} icon="💰" color="#10b981" />
+        <StatItem title="Statutory Tax" value={formatCurrency(stats.totalTax)} icon="🏛️" color="#f59e0b" />
+        <StatItem title="Net Disbursement" value={formatCurrency(stats.totalNet)} icon="🧾" color="#8b5cf6" />
       </div>
 
       <div className="main-content-grid">
-        {/* 3. CHART SECTION */}
         <div className="content-card chart-card">
-          <div className="card-header">
-            <h3>Monthly Payroll Expenditure</h3>
-          </div>
-
+          <div className="card-header"><h3>Annual Expenditure Trend</h3></div>
           <div className="chart-wrapper">
-            {monthlyPayrollData.length > 0 ? (
-              <Bar
-                data={payrollChart}
-                options={{ responsive: true, maintainAspectRatio: false }}
-              />
-            ) : (
-              <div className="empty-state">No data for {year}</div>
-            )}
+            <Bar data={{
+              labels: monthlyPayrollData.map(item => item.month),
+              datasets: [{
+                label: "Expenditure (NPR)",
+                data: monthlyPayrollData.map(item => item.amount),
+                backgroundColor: "rgba(25, 118, 210, 0.8)",
+                borderRadius: 6
+              }]
+            }} options={{ responsive: true, maintainAspectRatio: false }} />
           </div>
         </div>
 
-        {/* 4. ATTENDANCE SECTION */}
+        {/* DEPARTMENTAL BREAKDOWN WITH DUAL COUNTS */}
         <div className="content-card attendance-card">
           <div className="card-header">
-            <h3>Attendance Breakdown</h3>
-            <span className="date-tag">
-              {month}/{year}
-            </span>
+            <h3>Departmental Workforce</h3>
+            <span className="date-tag">Paid vs Total</span>
           </div>
 
           <div className="attendance-list">
-            <div className="att-item present">
-              <span className="dot"></span>
-              <span className="label">Present Days</span>
-              <span className="count">{attendanceSummary.presentDays}</span>
-            </div>
-
-            <div className="att-item absent">
-              <span className="dot"></span>
-              <span className="label">Absent Days</span>
-              <span className="count">{attendanceSummary.absentDays}</span>
-            </div>
-
-            <div className="att-item leave">
-              <span className="dot"></span>
-              <span className="label">On Leave</span>
-              <span className="count">{attendanceSummary.leaveDays}</span>
-            </div>
-
-            <hr />
-
-            <div className="att-item pending">
-              <span className="label">Pending Approval</span>
-              <span className="count highlight">
-                {payrollSummary.pendingLeaves}
-              </span>
-            </div>
+            {stats.departments?.map((d, i) => (
+              <div key={i} className="dept-report-row">
+                <div className="dept-main-info">
+                  <span className="dept-name-label">{d.name}</span>
+                  <div className="dept-badge-group">
+                    <span className="count-badge paid">{d.paidCount || 0} Paid</span>
+                    <span className="count-badge total">/ {d.totalEmployees || 0} Total</span>
+                  </div>
+                </div>
+                
+                <div className="dept-financial-detail">
+                  <div className="detail-item">
+                    <span className="tiny-label">Department Net</span>
+                    <span className="value-bold">{formatCurrency(d.net)}</span>
+                  </div>
+                </div>
+                
+                <div className="report-progress-bar">
+                  <div 
+                    className="fill" 
+                    style={{ 
+                      // Progress bar shows how many are paid vs total in that department
+                      width: `${d.totalEmployees > 0 ? (d.paidCount / d.totalEmployees) * 100 : 0}%`,
+                      backgroundColor: (d.paidCount === d.totalEmployees && d.totalEmployees > 0) ? '#10b981' : '#6366f1'
+                    }}
+                  ></div>
+                </div>
+              </div>
+            ))}
+            
+            {(!stats.departments || stats.departments.length === 0) && (
+              <div className="empty-state">No departmental records for this period.</div>
+            )}
           </div>
         </div>
       </div>
@@ -219,12 +160,7 @@ export default function Report() {
 function StatItem({ title, value, icon, color }) {
   return (
     <div className="stat-item" style={{ borderLeft: `4px solid ${color}` }}>
-      <div
-        className="stat-icon"
-        style={{ backgroundColor: `${color}15`, color: color }}
-      >
-        {icon}
-      </div>
+      <div className="stat-icon" style={{ backgroundColor: `${color}15`, color: color }}>{icon}</div>
       <div className="stat-info">
         <span className="stat-title">{title}</span>
         <span className="stat-value">{value}</span>

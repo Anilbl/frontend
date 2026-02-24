@@ -16,6 +16,7 @@ const AdminLayout = () => {
     { path: "employees", label: "Employees", icon: "👥" },
     { path: "attendance", label: "Attendance", icon: "📅" },
     { path: "leave", label: "Leave Requests", icon: "📝" },
+    { path: "holidays", label: "Holidays", icon: "🏮" }, // NEW ITEM
     { path: "payroll", label: "Payroll", icon: "💰" },
     { path: "system-config", label: "System Config", icon: "⚙️" },
     { path: "report", label: "Reports", icon: "📊" }

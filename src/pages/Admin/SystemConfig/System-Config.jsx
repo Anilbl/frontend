@@ -1,21 +1,18 @@
 import React, { useState } from "react";
 
-// Organization
+// Organization Components
 import Departments from "../Organization/Departments.jsx";
 import Designations from "../Organization/Designations.jsx";
 import Roles from "../Organization/Roles.jsx";
 import LeaveType from "../Organization/LeaveType.jsx";
 
-// Payroll Config
-import SalaryComponentType from "../PayrollConfig/SalaryComponentType.jsx";
+// Payroll Config Components
 import SalaryComponents from "../PayrollConfig/SalaryComponents.jsx";
-import SalaryGrade from "../PayrollConfig/SalaryGrade.jsx";
 import PayGroup from "../PayrollConfig/PayGroup.jsx";
-import GradeSalaryComponent from "../PayrollConfig/GradeSalaryComponent.jsx";
 import Bank from "../PayrollConfig/Banks.jsx";
 import PaymentMethod from "../PayrollConfig/PaymentMethods.jsx";
 
-// System Parameters
+// System Parameters Components
 import TaxSlabs from "./TaxSlabs.jsx";
 import DeductionHeads from "./DeductionHeads.jsx";
 import GlobalSettings from "./GlobalSettings.jsx";
@@ -65,7 +62,7 @@ export default function SystemConfig() {
           </div>
 
           <div className="module-content">
-            {/* Full-width stacked layout for Organization Setup */}
+            {/* MODULE 1: Organization Setup */}
             {activeModule === 1 && (
               <div className="org-setup-container">
                 <div className="full-width-section"><Departments /></div>
@@ -75,20 +72,17 @@ export default function SystemConfig() {
               </div>
             )}
 
-            {/* Payroll Config (already full-width stacked) */}
+            {/* MODULE 2: Payroll Config */}
             {activeModule === 2 && (
               <div className="payroll-config-container">
-                <div className="full-width-section"><SalaryComponentType /></div>
                 <div className="full-width-section"><SalaryComponents /></div>
-                <div className="full-width-section"><SalaryGrade /></div>
                 <div className="full-width-section"><PayGroup /></div>
-                <div className="full-width-section"><GradeSalaryComponent /></div>
                 <div className="full-width-section"><Bank /></div>
                 <div className="full-width-section"><PaymentMethod /></div>
               </div>
             )}
 
-            {/* Full-width stacked layout for System Parameters */}
+            {/* MODULE 3: System Parameters */}
             {activeModule === 3 && (
               <div className="org-setup-container">
                 <div className="full-width-section"><TaxSlabs /></div>

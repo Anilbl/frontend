@@ -8,6 +8,11 @@ export default function SalaryComponents() {
   const [types, setTypes] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [addingNew, setAddingNew] = useState(false);
+  
+  // Pagination States
+  const [currentPage, setCurrentPage] = useState(1);
+  const recordsPerPage = 10;
+
   const [formData, setFormData] = useState({
     componentName: "",
     componentTypeId: "",
@@ -34,7 +39,7 @@ export default function SalaryComponents() {
       setComponents(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error("Error fetching salary components", err);
-      setComponents([]); // Set empty array on error to prevent mapping crash
+      setComponents([]);
     }
   };
 
@@ -47,12 +52,19 @@ export default function SalaryComponents() {
     }
   };
 
+  // Pagination Logic
+  const indexOfLastRecord = currentPage * recordsPerPage;
+  const indexOfFirstRecord = indexOfLastRecord - recordsPerPage;
+  const currentRecords = components.slice(indexOfFirstRecord, indexOfLastRecord);
+  const totalPages = Math.ceil(components.length / recordsPerPage);
+
+  const paginate = (pageNumber) => setCurrentPage(pageNumber);
+
   const startEdit = (item) => {
     setEditingId(item.componentId);
     setAddingNew(false);
     setFormData({
       componentName: item.componentName || "",
-      // Optional chaining used here to prevent crash if componentType is missing
       componentTypeId: item.componentType?.componentTypeId || "",
       calculationMethod: item.calculationMethod || "fixed",
       defaultValue: item.defaultValue || 0,
@@ -133,7 +145,7 @@ export default function SalaryComponents() {
             <tr>
               <th>ID</th>
               <th>Name</th>
-              <th>Type</th>
+              {/* Type Column Removed */}
               <th>Method</th>
               <th>Default</th>
               <th>Description</th>
@@ -153,21 +165,22 @@ export default function SalaryComponents() {
                       setFormData({ ...formData, componentName: e.target.value })
                     }
                   />
-                </td>
-                <td>
-                  <select
-                    value={formData.componentTypeId}
-                    onChange={(e) =>
-                      setFormData({ ...formData, componentTypeId: e.target.value })
-                    }
-                  >
-                    <option value="">Select Type</option>
-                    {types.map((t) => (
-                      <option key={t.componentTypeId} value={t.componentTypeId}>
-                        {t.name}
-                      </option>
-                    ))}
-                  </select>
+                  {/* Hidden type selector needed for payload even if column is hidden */}
+                  <div style={{fontSize: '10px', marginTop: '5px'}}>
+                    <select
+                      value={formData.componentTypeId}
+                      onChange={(e) =>
+                        setFormData({ ...formData, componentTypeId: e.target.value })
+                      }
+                    >
+                      <option value="">Select Category</option>
+                      {types.map((t) => (
+                        <option key={t.componentTypeId} value={t.componentTypeId}>
+                          {t.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </td>
                 <td>
                   <select
@@ -218,39 +231,34 @@ export default function SalaryComponents() {
               </tr>
             )}
 
-            {components.map((c) => (
+            {currentRecords.map((c) => (
               <tr key={c.componentId}>
                 <td>{c.componentId}</td>
                 <td>
                   {editingId === c.componentId ? (
-                    <input
-                      value={formData.componentName}
-                      onChange={(e) =>
-                        setFormData({ ...formData, componentName: e.target.value })
-                      }
-                    />
+                    <>
+                      <input
+                        value={formData.componentName}
+                        onChange={(e) =>
+                          setFormData({ ...formData, componentName: e.target.value })
+                        }
+                      />
+                      <select
+                        style={{display: 'block', marginTop: '5px', fontSize: '11px'}}
+                        value={formData.componentTypeId}
+                        onChange={(e) =>
+                          setFormData({ ...formData, componentTypeId: e.target.value })
+                        }
+                      >
+                        {types.map((t) => (
+                          <option key={t.componentTypeId} value={t.componentTypeId}>
+                            {t.name}
+                          </option>
+                        ))}
+                      </select>
+                    </>
                   ) : (
                     c.componentName || "N/A"
-                  )}
-                </td>
-                <td>
-                  {editingId === c.componentId ? (
-                    <select
-                      value={formData.componentTypeId}
-                      onChange={(e) =>
-                        setFormData({ ...formData, componentTypeId: e.target.value })
-                      }
-                    >
-                      <option value="">Select Type</option>
-                      {types.map((t) => (
-                        <option key={t.componentTypeId} value={t.componentTypeId}>
-                          {t.name}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    // CRITICAL FIX: Optional chaining to prevent "reading name of undefined"
-                    c.componentType?.name || "N/A"
                   )}
                 </td>
                 <td>
@@ -307,7 +315,7 @@ export default function SalaryComponents() {
                     "✅"
                   ) : (
                     "❌"
-                  ) }
+                  )}
                 </td>
                 <td style={{ textAlign: "center" }}>
                   {editingId === c.componentId ? (
@@ -341,6 +349,41 @@ export default function SalaryComponents() {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination Controls */}
+      {components.length > recordsPerPage && (
+        <div className="pagination-bar" style={{ marginTop: '15px', display: 'flex', justifyContent: 'center', gap: '5px' }}>
+          <button 
+            disabled={currentPage === 1} 
+            onClick={() => paginate(currentPage - 1)}
+            className="btn-small"
+          >
+            Prev
+          </button>
+          {[...Array(totalPages)].map((_, index) => (
+            <button
+              key={index + 1}
+              onClick={() => paginate(index + 1)}
+              style={{
+                backgroundColor: currentPage === index + 1 ? '#4a90e2' : '#f4f4f4',
+                color: currentPage === index + 1 ? 'white' : 'black',
+                border: '1px solid #ddd',
+                padding: '5px 10px',
+                cursor: 'pointer'
+              }}
+            >
+              {index + 1}
+            </button>
+          ))}
+          <button 
+            disabled={currentPage === totalPages} 
+            onClick={() => paginate(currentPage + 1)}
+            className="btn-small"
+          >
+            Next
+          </button>
+        </div>
+      )}
 
       <ConfirmModal
         show={showConfirm}

@@ -18,9 +18,12 @@ function MessageModal({ show, type, message, onClose }) {
 export default function Designations() {
   const [designations, setDesignations] = useState([]);
   const [editingId, setEditingId] = useState(null);
-  // Updated formData to include baseSalary
   const [formData, setFormData] = useState({ designationTitle: "", baseSalary: 0 });
   const [addingNew, setAddingNew] = useState(false);
+
+  // Pagination States
+  const [currentPage, setCurrentPage] = useState(1);
+  const recordsPerPage = 10;
 
   const [showConfirm, setShowConfirm] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
@@ -37,13 +40,18 @@ export default function Designations() {
     }
   };
 
+  // Pagination Calculation
+  const indexOfLastRecord = currentPage * recordsPerPage;
+  const indexOfFirstRecord = indexOfLastRecord - recordsPerPage;
+  const currentRecords = designations.slice(indexOfFirstRecord, indexOfLastRecord);
+  const totalPages = Math.ceil(designations.length / recordsPerPage);
+
   const showMessage = (type, message) => setMessageData({ show: true, type, message });
   const closeMessage = () => setMessageData({ show: false, type: "", message: "" });
 
   const startEdit = (desg) => {
     setEditingId(desg.designationId);
     setAddingNew(false);
-    // Map existing values to form
     setFormData({ 
       designationTitle: desg.designationTitle, 
       baseSalary: desg.baseSalary || 0 
@@ -62,7 +70,6 @@ export default function Designations() {
       return;
     }
     try {
-      // Payload now includes baseSalary
       const payload = { 
         designationTitle: formData.designationTitle,
         baseSalary: parseFloat(formData.baseSalary) 
@@ -141,7 +148,7 @@ export default function Designations() {
                 </td>
               </tr>
             )}
-            {Array.isArray(designations) && designations.map((desg) => (
+            {currentRecords.map((desg) => (
               <tr key={desg.designationId}>
                 <td>{desg.designationId}</td>
                 <td>
@@ -162,7 +169,6 @@ export default function Designations() {
                       onChange={(e) => setFormData({ ...formData, baseSalary: e.target.value })}
                     />
                   ) : (
-                    // Formatting to 2 decimal places for UI consistency
                     desg.baseSalary?.toLocaleString(undefined, { minimumFractionDigits: 2 })
                   )}
                 </td>
@@ -184,6 +190,45 @@ export default function Designations() {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination UI */}
+      {designations.length > recordsPerPage && (
+        <div className="pagination-bar" style={{ marginTop: '20px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
+          <button 
+            className="btn-pagination" 
+            disabled={currentPage === 1} 
+            onClick={() => setCurrentPage(prev => prev - 1)}
+          >
+            Prev
+          </button>
+          
+          {[...Array(totalPages)].map((_, index) => (
+            <button
+              key={index + 1}
+              className={`page-number ${currentPage === index + 1 ? 'active' : ''}`}
+              onClick={() => setCurrentPage(index + 1)}
+              style={{
+                padding: '5px 12px',
+                border: '1px solid #ddd',
+                cursor: 'pointer',
+                backgroundColor: currentPage === index + 1 ? '#007bff' : '#fff',
+                color: currentPage === index + 1 ? '#fff' : '#333',
+                borderRadius: '4px'
+              }}
+            >
+              {index + 1}
+            </button>
+          ))}
+
+          <button 
+            className="btn-pagination" 
+            disabled={currentPage === totalPages} 
+            onClick={() => setCurrentPage(prev => prev + 1)}
+          >
+            Next
+          </button>
+        </div>
+      )}
 
       <ConfirmModal
         show={showConfirm}

@@ -1,99 +1,157 @@
-import React, { useState, useEffect } from 'react';
-// IMPORT FIX: We must use the custom 'api' instance to include the JWT token
+import React, { useState, useEffect, useMemo } from 'react';
 import api from "../../api/axios"; 
 import './AccountantDashboard.css';
 
 const AccountantDashboard = () => {
+  // --- 1. Date Configuration ---
+  const months = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
+
+  const currentYear = new Date().getFullYear();
+  const currentMonthIdx = new Date().getMonth();
+
+  const years = useMemo(() => {
+    const y = [];
+    for (let i = currentYear; i >= 2020; i--) y.push(i);
+    return y;
+  }, [currentYear]);
+
+  // --- 2. State Management ---
+  const [selectedMonth, setSelectedMonth] = useState(months[currentMonthIdx]);
+  const [selectedYear, setSelectedYear] = useState(currentYear);
+  const [loading, setLoading] = useState(false);
+  
   const [metrics, setMetrics] = useState({
-    monthlyPayrollTotal: 0,
-    payrollStatus: "Loading...",
-    compliancePercentage: 0,
-    pendingVerifications: 0
+    totalNet: 0,
+    totalTax: 0,
+    totalSSF: 0,
+    paidCount: 0,
+    totalGross: 0,
+    totalDeductions: 0,
+    payrollStatus: "Active"
   });
 
-  useEffect(() => {
-    // LOGIC FIX: 
-    // 1. Use 'api' instead of 'axios' so the Authorization header is attached.
-    // 2. Use the relative path '/salary-summary/command-center' 
-    //    because your api config already defines 'http://localhost:8080/api' as the baseURL.
-    api.get('/salary-summary/command-center')
-      .then(res => {
-        // res.data will now contain the metrics from the backend
-        setMetrics(res.data);
-      })
-      .catch(err => {
-        console.error("Dashboard data fetch failed:", err);
-        setMetrics(prev => ({ ...prev, payrollStatus: "Fetch Error" }));
+  // --- 3. Data Fetching ---
+  const fetchDashboardData = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get('/payrolls/salary-summary', {
+        params: { 
+          month: months.indexOf(selectedMonth) + 1, 
+          year: selectedYear 
+        }
       });
-  }, []);
+      
+      setMetrics({
+        ...res.data,
+        payrollStatus: res.data.paidCount > 0 ? "Processed" : "Pending"
+      });
+    } catch (err) {
+      console.error("Dashboard data fetch failed:", err);
+      setMetrics(prev => ({ ...prev, payrollStatus: "Fetch Error" }));
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  /**
-   * Formatter for currency display
-   * Added a check to prevent errors if monthlyPayrollTotal is undefined
-   */
-  const formatM = (num) => {
-    if (num === undefined || num === null || isNaN(num)) return "Rs. 0.0M";
-    return `Rs. ${(num / 1000000).toFixed(1)}M`;
+  useEffect(() => {
+    fetchDashboardData();
+  }, [selectedMonth, selectedYear]);
+
+  // --- 4. Helper Functions ---
+  const formatCurrency = (num) => {
+    if (!num || isNaN(num)) return "Rs. 0.00";
+    return new Intl.NumberFormat('en-NP', { 
+      style: 'currency', 
+      currency: 'NPR',
+      minimumFractionDigits: 0 
+    }).format(num).replace("NPR", "Rs.");
   };
 
   return (
     <div className="pro-dash-content">
+      {/* Header Section */}
       <header className="pro-dash-header">
         <div className="header-text">
           <h1>Accountant <span className="highlight">Command Center</span></h1>
-          <p>Real-time payroll status for NAST System • Fiscal Year 2025/26</p>
+          <p>Real-time payroll status  • Fiscal Year {selectedYear}</p>
         </div>
-        <div className="header-date">
-          <span className="calendar-icon">📅</span> {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+        
+        <div className="header-controls">
+          <div className="dashboard-selectors">
+            <select 
+              value={selectedMonth} 
+              onChange={(e) => setSelectedMonth(e.target.value)}
+            >
+              {months.map(m => <option key={m} value={m}>{m}</option>)}
+            </select>
+            <select 
+              value={selectedYear} 
+              onChange={(e) => setSelectedYear(e.target.value)}
+            >
+              {years.map(y => <option key={y} value={y}>{y}</option>)}
+            </select>
+          </div>
+          <div className="header-date">
+             📅 {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+          </div>
         </div>
       </header>
 
+      {/* Main KPI Section */}
       <section className="kpi-stack-section">
         <div className="section-header-flex">
-            <h3 className="sub-section-title">Critical Metrics</h3>
-            <span className="live-indicator">● LIVE DATA</span>
+            <h3 className="sub-section-title">Critical Metrics ({selectedMonth})</h3>
+            <span className={`live-indicator ${loading ? 'syncing' : ''}`}>
+              {loading ? '● SYNCING...' : '● LIVE DATA'}
+            </span>
         </div>
         
         <div className="vertical-kpi-stack">
           
-          {/* Monthly Payroll Row */}
+          {/* Net Disbursement */}
           <div className="kpi-linear-card blue-glow">
             <div className="kpi-icon-container">💰</div>
             <div className="kpi-main-info">
-              <span className="kpi-tag">Monthly Payroll</span>
-              <h2 className="kpi-amount">{formatM(metrics.monthlyPayrollTotal)}</h2>
+              <span className="kpi-tag">Net Disbursement</span>
+              <h2 className="kpi-amount">{formatCurrency(metrics.totalNet)}</h2>
             </div>
             <div className="kpi-meta">
               <span className="meta-label">Status</span>
-              <span className="status-pill status-active">{metrics.payrollStatus}</span>
+              <span className={`status-pill ${metrics.paidCount > 0 ? 'status-active' : 'status-warn'}`}>
+                {metrics.payrollStatus}
+              </span>
             </div>
           </div>
 
-          {/* Tax Compliance Row */}
+          {/* Statutory Obligations */}
           <div className="kpi-linear-card indigo-glow">
             <div className="kpi-icon-container">🏛️</div>
             <div className="kpi-main-info">
-              <span className="kpi-tag">Tax & SSF Compliance</span>
-              <h2 className="kpi-amount">{metrics.compliancePercentage}% Verified</h2>
+              <span className="kpi-tag">Tax & SSF Liabilities</span>
+              <h2 className="kpi-amount">{formatCurrency(metrics.totalTax + metrics.totalSSF)}</h2>
             </div>
             <div className="kpi-meta">
-              <span className="meta-label">Audit</span>
-              <span className="status-pill status-secure">Government Compliant</span>
+              <span className="meta-label">Compliance</span>
+              <span className="status-pill status-secure">Govt. Compliant</span>
             </div>
           </div>
 
-          {/* Pending Verifications Row */}
+          {/* Processed Records */}
           <div className="kpi-linear-card amber-glow">
-            <div className="kpi-icon-container">⏳</div>
+            <div className="kpi-icon-container">📄</div>
             <div className="kpi-main-info">
-              <span className="kpi-tag">Pending Verifications</span>
-              <h2 className="kpi-amount">{metrics.pendingVerifications} Records</h2>
+              <span className="kpi-tag">Processed Payrolls</span>
+              <h2 className="kpi-amount">{metrics.paidCount} Records</h2>
             </div>
             <div className="kpi-meta">
               <span className="meta-label">Action</span>
-              <span className="status-pill status-warn">Review Required</span>
+              <span className="status-pill status-active">Verified</span>
             </div>
           </div>
+
         </div>
       </section>
     </div>

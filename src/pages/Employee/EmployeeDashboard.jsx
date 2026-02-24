@@ -15,50 +15,74 @@ const EmployeeDashboard = () => {
     totalAllowances: "Rs. 0"
   });
   
+useEffect(() => {
+  const loadData = async () => {
+    try {
+      setLoading(true);
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        const session = JSON.parse(localStorage.getItem("user_session") || "{}");
-        const id = session.empId || session.userId;
-        if (!id) return setLoading(false);
+      const session = JSON.parse(localStorage.getItem("user_session") || "{}");
+      const empId = session.empId;
+      if (!empId) return;
 
-        // Fetch dashboard stats and attendance together
-        const [statsRes, attendanceRes] = await Promise.all([
-          getDashboardStats(id).catch(() => ({ data: {} })),
-          getAttendanceByEmployee(id).catch(() => ({ data: [] }))
-        ]);
+      const [statsRes, attendanceRes] = await Promise.all([
+        getDashboardStats(empId).catch(() => ({ data: {} })),
+        getAttendanceByEmployee(empId).catch(() => ({ data: [] }))
+      ]);
 
-        // Attendance calculation
-        const now = new Date();
-        const totalDays = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-        const logs = attendanceRes.data || [];
-        const currentMonthLogs = logs.filter(log => {
-          const d = new Date(log.attendanceDate);
-          return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-        });
-        const uniqueDays = new Set(currentMonthLogs.map(l => l.attendanceDate)).size;
-        const percent = totalDays > 0 ? ((uniqueDays / totalDays) * 100).toFixed(1) : 0;
+      const logs = attendanceRes.data || [];
 
-        // Map backend response to frontend
-        const stats = statsRes.data || {};
-        setEmployeeInfo({
-          name: stats.firstName || "Employee",
-          attendance: `${percent}%`,
-          leaveBalance: `${stats.remainingLeaves || 0} Days`,
-          lastSalary: `Rs. ${stats.lastSalary?.toLocaleString() || 0}`,
-          tax: `Rs. ${stats.taxableAmount?.toLocaleString() || 0}`,
-          totalAllowances: `Rs. ${stats.totalAllowances?.toLocaleString() || 0}`
-        });
-      } catch (err) {
-        console.error("Dashboard Load Failed", err);
-      } finally {
-        setLoading(false);
+      // ✅ Extract employee name from first attendance record
+      let fullName = "Employee";
+      if (logs.length > 0 && logs[0].employee) {
+        const emp = logs[0].employee;
+        fullName = `${emp.firstName} ${emp.lastName}`;
       }
-    };
-    loadData();
-  }, []);
 
+      // Monthly Attendance %
+      const now = new Date();
+      const totalDays = new Date(
+        now.getFullYear(),
+        now.getMonth() + 1,
+        0
+      ).getDate();
+
+      const currentMonthLogs = logs.filter(log => {
+        const d = new Date(log.attendanceDate);
+        return (
+          d.getMonth() === now.getMonth() &&
+          d.getFullYear() === now.getFullYear()
+        );
+      });
+
+      const uniqueDays = new Set(
+        currentMonthLogs.map(l => l.attendanceDate)
+      ).size;
+
+      const percent =
+        totalDays > 0
+          ? ((uniqueDays / totalDays) * 100).toFixed(1)
+          : 0;
+
+      const stats = statsRes.data || {};
+
+      setEmployeeInfo({
+  name: fullName,
+  attendance: stats.attendance || "0%",
+  leaveBalance: stats.leaveBalance || "0 Days",
+  lastSalary: stats.netSalary || "Rs. 0",
+  tax: stats.taxableAmount || "Rs. 0",
+  totalAllowances: stats.totalAllowances || "Rs. 0"
+});
+
+    } catch (err) {
+      console.error("Dashboard Load Failed", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  loadData();
+}, []);
   if (loading) {
     return <div className="dashboard-loading">Loading...</div>;
   }

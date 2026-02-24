@@ -267,7 +267,13 @@ const AttendanceRecords = () => {
                                     <td><strong>{row.attendanceDate}</strong></td>
                                     <td>{row.checkInTime ? new Date(row.checkInTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'}) : "--:--"}</td>
                                     <td>{row.checkOutTime ? new Date(row.checkOutTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'}) : <span className="active-badge">On Shift</span>}</td>
-                                    <td><small className="gps-coords">{row.inGpsLat.toFixed(4)}, {row.inGpsLong.toFixed(4)}</small></td>
+                                    <td>
+  <small className="gps-coords">
+    {row.inGpsLat != null && row.inGpsLong != null
+      ? `${Number(row.inGpsLat).toFixed(4)}, ${Number(row.inGpsLong).toFixed(4)}`
+      : "--"}
+  </small>
+</td>
                                     <td><span className={`tag-status status-${row.status?.toLowerCase()}`}>{row.status}</span></td>
                                 </tr>
                             )) : <tr><td colSpan="5" className="no-data">No attendance records found for this month.</td></tr>}
