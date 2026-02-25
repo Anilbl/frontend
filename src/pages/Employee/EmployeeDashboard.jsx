@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { getDashboardStats } from "../../api/employeeApi"; 
+import { getDashboardStats } from "../../api/employeeApi";
 import { getAttendanceByEmployee } from "../../api/attendanceApi";
 import "./EmployeeDashboard.css";
 
@@ -9,38 +9,70 @@ const EmployeeDashboard = () => {
     name: "Employee",
     attendance: "0%",
     leaveBalance: "0 Days",
-    lastSalary: "Rs. 0"
+    lastSalary: "Rs. 0",
+    tax: "Rs. 0",
+    totalAllowances: "Rs. 0",
   });
 
   useEffect(() => {
     const loadData = async () => {
       try {
+        setLoading(true);
+
         const session = JSON.parse(localStorage.getItem("user_session") || "{}");
-        const id = session.empId || session.userId;
+        const empId = session.empId;
+        if (!empId) return;
 
-        if (!id) return setLoading(false);
-
+        // Fetch data concurrently
         const [statsRes, attendanceRes] = await Promise.all([
-          getDashboardStats(id).catch(() => ({ data: {} })),
-          getAttendanceByEmployee(id).catch(() => ({ data: [] }))
+          getDashboardStats(empId).catch(() => ({ data: {} })),
+          getAttendanceByEmployee(empId).catch(() => ({ data: [] })),
         ]);
 
-        const now = new Date();
-        const totalDays = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
         const logs = attendanceRes.data || [];
-        const currentMonthLogs = logs.filter(log => {
-            const d = new Date(log.attendanceDate);
-            return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+        const stats = statsRes.data || {};
+
+        // 1. Resolve Name: Preference to session, fallback to attendance log
+        let fullName = session.firstName
+          ? `${session.firstName} ${session.lastName}`
+          : "Employee";
+
+        if (fullName === "Employee" && logs.length > 0 && logs[0].employee) {
+          const emp = logs[0].employee;
+          fullName = `${emp.firstName} ${emp.lastName}`;
+        }
+
+        // 2. Calculate Monthly Attendance %
+        const now = new Date();
+        const totalDaysInMonth = new Date(
+          now.getFullYear(),
+          now.getMonth() + 1,
+          0
+        ).getDate();
+
+        const currentMonthLogs = logs.filter((log) => {
+          const d = new Date(log.attendanceDate);
+          return (
+            d.getMonth() === now.getMonth() &&
+            d.getFullYear() === now.getFullYear()
+          );
         });
 
-        const uniqueDays = new Set(currentMonthLogs.map(l => l.attendanceDate)).size;
-        const percent = totalDays > 0 ? ((uniqueDays / totalDays) * 100).toFixed(1) : 0;
+        const uniqueDays = new Set(currentMonthLogs.map((l) => l.attendanceDate))
+          .size;
+        const calculatedPercent =
+          totalDaysInMonth > 0
+            ? ((uniqueDays / totalDaysInMonth) * 100).toFixed(1)
+            : 0;
 
+        // 3. Update State
         setEmployeeInfo({
-          name: session.firstName ? `${session.firstName} ${session.lastName}` : "Employee",
-          attendance: `${percent}%`,
-          leaveBalance: `${statsRes.data?.remainingLeaves || 0} Days`,
-          lastSalary: `Rs. ${statsRes.data?.lastSalary || 0}`
+          name: fullName,
+          attendance: stats.attendance || `${calculatedPercent}%`,
+          leaveBalance: `${stats.remainingLeaves || stats.leaveBalance || 0} Days`,
+          lastSalary: `Rs. ${stats.lastSalary || stats.netSalary || 0}`,
+          tax: `Rs. ${stats.taxableAmount || 0}`,
+          totalAllowances: `Rs. ${stats.totalAllowances || 0}`,
         });
       } catch (err) {
         console.error("Dashboard Load Failed", err);
@@ -48,33 +80,43 @@ const EmployeeDashboard = () => {
         setLoading(false);
       }
     };
+
     loadData();
   }, []);
 
-  if (loading) return <div className="loading-text">Loading Dashboard...</div>;
+  if (loading) {
+    return (
+      <div className="dashboard-content-wrapper">
+        <div className="loading-text">Loading Dashboard...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="dashboard-content-wrapper">
-      <h1>Welcome Back, {employeeInfo.name}! 👋</h1>
-      
+      <header className="dashboard-welcome-header">
+        <h1>Welcome Back, {employeeInfo.name}! 👋</h1>
+        <p>Here is what's happening with your profile today.</p>
+      </header>
+
       <div className="stats-row">
-        <StatCard 
-          label="Attendance (Monthly)" 
-          value={employeeInfo.attendance} 
-          icon="🕒" 
-          color="#4f46e5" 
+        <StatCard
+          label="Attendance (Monthly)"
+          value={employeeInfo.attendance}
+          icon="🕒"
+          color="#4f46e5"
         />
-        <StatCard 
-          label="Leave Balance" 
-          value={employeeInfo.leaveBalance} 
-          icon="📝" 
-          color="#0891b2" 
+        <StatCard
+          label="Leave Balance"
+          value={employeeInfo.leaveBalance}
+          icon="📝"
+          color="#0891b2"
         />
-        <StatCard 
-          label="Net Salary" 
-          value={employeeInfo.lastSalary} 
-          icon="💰" 
-          color="#059669" 
+        <StatCard
+          label="Net Salary"
+          value={employeeInfo.lastSalary}
+          icon="💰"
+          color="#059669"
         />
       </div>
     </div>
@@ -83,7 +125,13 @@ const EmployeeDashboard = () => {
 
 const StatCard = ({ label, value, icon, color }) => (
   <div className="status-kpi-card">
-    <div className="kpi-icon-container" style={{ color, backgroundColor: `${color}15` }}>
+    <div
+      className="kpi-icon-container"
+      style={{
+        color: color,
+        backgroundColor: `${color}15`, // 15% opacity hex trick
+      }}
+    >
       {icon}
     </div>
     <div className="kpi-data">

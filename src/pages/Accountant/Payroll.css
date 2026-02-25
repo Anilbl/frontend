@@ -1,3 +1,131 @@
+<<<<<<< HEAD
+:root {
+  --primary: #4f46e5;
+  --success: #10b981;
+  --bg-light: #f8fafc;
+  --text-dark: #1e293b;
+  --text-muted: #64748b;
+  --border-color: #e2e8f0;
+  --white: #ffffff;
+}
+
+/* --- Base Layout --- */
+.content-fade-in {
+  padding: 24px;
+  background-color: var(--bg-light);
+  min-height: 100vh;
+  font-family: 'Inter', sans-serif;
+}
+
+/* --- Professional Card Container --- */
+.modern-card {
+  background: var(--white);
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  overflow: hidden; /* Keeps the progress/pagination inside */
+  margin-top: 20px;
+}
+
+/* --- The Core Table Fix --- */
+.modern-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed; /* CRITICAL: This prevents columns from collapsing */
+}
+
+/* Define Column Widths here to prevent the "Far Apart" look */
+.modern-table th:nth-child(1), .modern-table td:nth-child(1) { width: 30%; } /* Employee Info */
+.modern-table th:nth-child(2), .modern-table td:nth-child(2) { width: 25%; } /* Salary */
+.modern-table th:nth-child(3), .modern-table td:nth-child(3) { width: 20%; } /* Status */
+.modern-table th:nth-child(4), .modern-table td:nth-child(4) { width: 25%; } /* Operations */
+
+.modern-table th {
+  background: #f1f5f9;
+  padding: 14px 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 2px solid var(--border-color);
+  text-align: left;
+}
+
+.modern-table td {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--white);
+}
+
+/* --- Operations Column Alignment --- */
+.text-right {
+  text-align: right !important;
+}
+
+.action-row {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end; /* Buttons stay together */
+  align-items: center;
+}
+
+/* --- Professional Button Styles --- */
+.run-action {
+  background-color: var(--success);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: uppercase;
+}
+
+.run-action:hover {
+  background-color: #059669;
+  transform: translateY(-1px);
+}
+
+.history-action {
+  background: var(--white);
+  color: var(--text-dark);
+  border: 1px solid #cbd5e1;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.history-action:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+/* --- Status Tag Styling --- */
+.status-tag {
+  padding: 4px 12px;
+  border-radius: 99px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  display: inline-block;
+}
+
+.tag-paid { background: #dcfce7; color: #166534; }
+.tag-verified { background: #e0f2fe; color: #0369a1; }
+
+/* --- Search input professional look --- */
+.modern-search {
+  width: 300px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  margin-bottom: 10px;
+=======
 /* Container & Background - Full Width, No Scroll */
 .payroll-container {
     padding: 20px;
@@ -296,4 +424,5 @@ button:disabled {
     text-align: center;
     color: #94a3b8;
     font-style: italic;
+>>>>>>> b35b79e1a86c81143135928d8198d847a383043c
 }

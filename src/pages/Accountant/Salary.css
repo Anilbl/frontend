@@ -1,3 +1,44 @@
+<<<<<<< HEAD
+.prof-container {
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.prof-header {
+    margin-bottom: 2rem;
+}
+
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.metric-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    border-top: 4px solid #4f46e5;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.metric-card span {
+    color: #64748b;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.metric-card h2 {
+    margin: 8px 0 0 0;
+    color: #1e293b;
+    font-size: 1.8rem;
+}
+
+=======
 .prof-header {
     display: flex;
     justify-content: space-between;
@@ -47,6 +88,7 @@
 .metric-card h3 { margin: 8px 0 0 0; color: #1e293b; font-size: 1.2rem; }
 
 /* Border Colors */
+>>>>>>> b35b79e1a86c81143135928d8198d847a383043c
 .red-border { border-top-color: #ef4444; }
 .green-border { border-top-color: #22c55e; }
 .orange-border { border-top-color: #f59e0b; }
@@ -56,12 +98,85 @@
 
 .loader { padding: 40px; text-align: center; color: #6366f1; font-weight: 600; }
 
+<<<<<<< HEAD
+/* Department List Section */
+.prof-card {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    overflow: hidden;
+}
+=======
 .dept-list { padding: 0.5rem 1.5rem; }
 .dept-row { display: flex; justify-content: space-between; align-items: center; padding: 1.5rem 0; border-bottom: 1px solid #f1f5f9; }
 .dept-info h4 { margin: 0; color: #0f172a; font-size: 1.05rem; }
 .dept-info p { margin: 4px 0 0 0; color: #64748b; font-size: 0.9rem; }
+>>>>>>> b35b79e1a86c81143135928d8198d847a383043c
 
-.dept-progress-container { width: 300px; }
-.progress-label { font-size: 0.8rem; color: #64748b; margin-bottom: 6px; text-align: right; }
-.progress-bar { height: 8px; background: #f1f5f9; border-radius: 4px; overflow: hidden; }
-.progress-bar .fill { height: 100%; background: #4f46e5; border-radius: 4px; }
+.card-header {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid #f1f5f9;
+    background: #f8fafc;
+}
+
+.dept-list {
+    padding: 0 1.5rem;
+}
+
+.dept-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 0;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.dept-row:last-child {
+    border-bottom: none;
+}
+
+.dept-info h4 {
+    margin: 0;
+    color: #0f172a;
+    font-size: 1.1rem;
+}
+
+.dept-info p {
+    margin: 6px 0 0 0;
+    color: #64748b;
+    font-size: 0.95rem;
+}
+
+/* Progress Bar Logic */
+.dept-progress-container {
+    width: 350px;
+}
+
+.progress-label {
+    font-size: 0.8rem;
+    color: #64748b;
+    margin-bottom: 8px;
+    text-align: right;
+    font-weight: 500;
+}
+
+.progress-bar {
+    height: 10px;
+    background: #f1f5f9;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.progress-bar .fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4f46e5, #6366f1);
+    border-radius: 10px;
+    transition: width 1s ease-in-out; /* Animates the bar growth */
+}
+
+.loading-state, .no-data {
+    text-align: center;
+    padding: 3rem;
+    color: #64748b;
+    font-style: italic;
+}

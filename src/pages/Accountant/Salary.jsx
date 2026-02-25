@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import api from "../../api/axios"; 
+import api from "../../api/axios";
 import './Salary.css';
 
 const Salary = () => {
   const currentYear = new Date().getFullYear();
   const currentMonthIdx = new Date().getMonth();
-  
+
   const months = [
     "January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December"
@@ -19,9 +19,8 @@ const Salary = () => {
 
   const [selectedMonth, setSelectedMonth] = useState(months[currentMonthIdx]);
   const [selectedYear, setSelectedYear] = useState(currentYear);
-  const [loading, setLoading] = useState(false);
-  
-  // State keys now match Backend DTO exactly
+  const [loading, setLoading] = useState(false); // ✅ Single declaration
+
   const [stats, setStats] = useState({
     totalGross: 0,
     totalDeductions: 0,
@@ -37,12 +36,11 @@ const Salary = () => {
     setLoading(true);
     try {
       const res = await api.get('/payrolls/salary-summary', {
-        params: { 
-          month: months.indexOf(selectedMonth) + 1, 
-          year: selectedYear 
+        params: {
+          month: months.indexOf(selectedMonth) + 1,
+          year: selectedYear
         }
       });
-      // Directly setting the DTO response into state
       setStats(res.data);
     } catch (err) {
       console.error("Error loading payroll metrics:", err);
@@ -63,6 +61,8 @@ const Salary = () => {
     }).format(num || 0).replace("NPR", "Rs.");
   };
 
+  if (loading) return <div className="loading-state">Connecting to Database...</div>;
+
   return (
     <div className="prof-container">
       <div className="prof-header">
@@ -75,7 +75,7 @@ const Salary = () => {
           <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}>
             {months.map(m => <option key={m} value={m}>{m}</option>)}
           </select>
-          <select value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
+          <select value={selectedYear} onChange={(e) => setSelectedYear(Number(e.target.value))}>
             {years.map(y => <option key={y} value={y}>{y}</option>)}
           </select>
         </div>
@@ -83,18 +83,9 @@ const Salary = () => {
 
       {/* Row 1: Primary Metrics */}
       <div className="metrics-grid">
-        <div className="metric-card">
-          <span>Total Gross Pay</span>
-          <h2>{formatCurrency(stats.totalGross)}</h2>
-        </div>
-        <div className="metric-card red-border">
-          <span>Total Deductions</span>
-          <h2>{formatCurrency(stats.totalDeductions)}</h2>
-        </div>
-        <div className="metric-card green-border">
-          <span>Total Net Disbursement</span>
-          <h2>{formatCurrency(stats.totalNet)}</h2>
-        </div>
+        <div className="metric-card"><span>Total Gross</span><h2>{formatCurrency(stats.totalGross)}</h2></div>
+        <div className="metric-card red-border"><span>Deductions</span><h2>{formatCurrency(stats.totalDeductions)}</h2></div>
+        <div className="metric-card green-border"><span>Net Disbursement</span><h2>{formatCurrency(stats.totalNet)}</h2></div>
       </div>
 
       {/* Row 2: Statutory & Operations */}
@@ -117,37 +108,36 @@ const Salary = () => {
         </div>
       </div>
 
+      {/* Departmental Breakdown */}
       <div className="prof-card">
         <div className="card-header">
           <h3>Departmental Breakdown</h3>
         </div>
-        {loading ? <div className="loader">Updating Metrics...</div> : (
-          <div className="dept-list">
-            {stats.departments && stats.departments.length > 0 ? (
-              stats.departments.map((d, i) => (
-                <div key={i} className="dept-row">
-                  <div className="dept-info">
-                    <h4>{d.name}</h4>
-                    <p>Net Distribution: <strong>{formatCurrency(d.net)}</strong></p>
-                  </div>
-                  <div className="dept-progress-container">
-                    <div className="progress-label">Tax Contribution: {formatCurrency(d.tax)}</div>
-                    <div className="progress-bar">
-                      <div 
-                        className="fill" 
-                        style={{ width: `${d.net ? (d.tax / (d.net + d.tax)) * 100 + 10 : 0}%` }}
-                      ></div>
-                    </div>
+        <div className="dept-list">
+          {stats.departments && stats.departments.length > 0 ? (
+            stats.departments.map((d, i) => (
+              <div key={i} className="dept-row">
+                <div className="dept-info">
+                  <h4>{d.name}</h4>
+                  <p>Net Distribution: <strong>{formatCurrency(d.net)}</strong></p>
+                </div>
+                <div className="dept-progress-container">
+                  <div className="progress-label">Tax Contribution: {formatCurrency(d.tax)}</div>
+                  <div className="progress-bar">
+                    <div
+                      className="fill"
+                      style={{ width: `${d.net ? (d.tax / (d.net + d.tax)) * 100 + 10 : 0}%` }}
+                    ></div>
                   </div>
                 </div>
-              ))
-            ) : (
-              <p style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
-                No records found for {selectedMonth} {selectedYear}.
-              </p>
-            )}
-          </div>
-        )}
+              </div>
+            ))
+          ) : (
+            <p style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
+              No records found for {selectedMonth} {selectedYear}.
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -74,7 +74,7 @@ textarea { min-height: 110px; resize: vertical; }
 
 .submit-action-center { display: flex; justify-content: flex-start; margin-top: 10px; }
 .btn-apply-gradient {
-  background: linear-gradient(45deg, #2563eb, #9333ea);
+  background: linear-gradient(45deg, #2156c9, #1d30d6);
   color: white;
   border: none;
   padding: 14px 50px;
@@ -83,6 +83,7 @@ textarea { min-height: 110px; resize: vertical; }
   cursor: pointer;
   transition: 0.3s ease;
 }
+ 
 
 /* History Section - Full Width */
 .leave-history-container {

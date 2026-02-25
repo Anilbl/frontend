@@ -21,7 +21,7 @@ const EmployeeLayout = () => {
     navigate("/");
   };
 
-  // Check permissions for switching
+  // Check permissions for switching portals
   const hasAdmin = user?.isAdmin;
   const hasAccountant = user?.isAccountant;
 
@@ -46,10 +46,17 @@ const EmployeeLayout = () => {
 
   return (
     <div className="employee-layout-container">
-      {/* SIDEBAR FIXED TO LEFT */}
+      {/* SIDEBAR */}
       <aside className="employee-sidebar">
         <div className="sidebar-header">
-          <div className="logo-box">Payroll Management System</div>
+          {/* Combined git branding with local welcome message */}
+          <div className="brand-section">
+            <div className="brand-icon">💰</div>
+            <div className="brand-text-wrapper">
+              <span className="brand-subtitle">Payroll System</span>
+              <h2 className="brand-title">Employee Portal</h2>
+            </div>
+          </div>
           {user && <div className="user-welcome">Hi, {user.username}</div>}
         </div>
 
@@ -67,6 +74,7 @@ const EmployeeLayout = () => {
             ))}
           </div>
 
+          {/* Action Group for switching portals and logout */}
           <div className="sidebar-actions-group">
             {(hasAdmin || hasAccountant) && (
               <div className="portal-switch-area">
@@ -91,9 +99,9 @@ const EmployeeLayout = () => {
         </nav>
       </aside>
 
-      {/* CONTENT AREA THAT PUSHES FOOTER DOWN */}
+      {/* MAIN CONTENT AREA */}
       <div className="employee-main-wrapper">
-        {/* Sticky Header - Adding a professional top bar like Accountant */}
+        {/* Sticky Header from Local HEAD */}
         <header className="top-sticky-header">
           <h3 className="page-title">{getPageTitle()}</h3>
           <div className="user-indicator" style={{fontSize: '0.8rem', color: '#64748b'}}>
