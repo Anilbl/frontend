@@ -20,13 +20,11 @@ const EmployeeDashboard = () => {
 
         if (!id) return setLoading(false);
 
-        // Fetching using your updated API helpers
         const [statsRes, attendanceRes] = await Promise.all([
           getDashboardStats(id).catch(() => ({ data: {} })),
           getAttendanceByEmployee(id).catch(() => ({ data: [] }))
         ]);
 
-        // Monthly Attendance Calculation
         const now = new Date();
         const totalDays = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
         const logs = attendanceRes.data || [];
@@ -53,13 +51,31 @@ const EmployeeDashboard = () => {
     loadData();
   }, []);
 
+  if (loading) return <div className="loading-text">Loading Dashboard...</div>;
+
   return (
     <div className="dashboard-content-wrapper">
       <h1>Welcome Back, {employeeInfo.name}! 👋</h1>
+      
       <div className="stats-row">
-        <StatCard label="Attendance (Monthly)" value={employeeInfo.attendance} icon="🕒" color="#4f46e5" />
-        <StatCard label="Leave Balance" value={employeeInfo.leaveBalance} icon="📝" color="#0891b2" />
-        <StatCard label="Net Salary" value={employeeInfo.lastSalary} icon="💰" color="#059669" />
+        <StatCard 
+          label="Attendance (Monthly)" 
+          value={employeeInfo.attendance} 
+          icon="🕒" 
+          color="#4f46e5" 
+        />
+        <StatCard 
+          label="Leave Balance" 
+          value={employeeInfo.leaveBalance} 
+          icon="📝" 
+          color="#0891b2" 
+        />
+        <StatCard 
+          label="Net Salary" 
+          value={employeeInfo.lastSalary} 
+          icon="💰" 
+          color="#059669" 
+        />
       </div>
     </div>
   );
@@ -67,7 +83,9 @@ const EmployeeDashboard = () => {
 
 const StatCard = ({ label, value, icon, color }) => (
   <div className="status-kpi-card">
-    <div className="kpi-icon-container" style={{ color, backgroundColor: `${color}15` }}>{icon}</div>
+    <div className="kpi-icon-container" style={{ color, backgroundColor: `${color}15` }}>
+      {icon}
+    </div>
     <div className="kpi-data">
       <span className="kpi-label">{label}</span>
       <h2 className="kpi-value">{value}</h2>

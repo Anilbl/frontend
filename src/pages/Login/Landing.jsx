@@ -14,57 +14,60 @@ const Landing = ({ setUser }) => {
     const location = useLocation();
 
     useEffect(() => {
+        localStorage.removeItem("user_session");
+        if (setUser) setUser(null);
+
         const params = new URLSearchParams(location.search);
         if (params.get("expired")) {
             setError("Your session has expired. Please log in again.");
-            localStorage.removeItem("user_session");
         }
-    }, [location]);
+    }, [location, setUser]);
 
     const handleLogin = async (e) => {
         e.preventDefault();
         setIsLoading(true);
-        setError(''); 
+        setError('');
 
         try {
-            // Ensure the endpoint matches your AuthController @PostMapping("/login")
-            const response = await api.post("/auth/login", credentials);
+            const response = await api.post("/auth/login", {
+                username: credentials.username.trim(),
+                password: credentials.password
+            });
 
             if (response.data) {
-                // Destructure all fields including the NEW empId from our backend update
-                const { token, userId, empId, username, role, email } = response.data;
+                const { 
+                    token, userId, empId, username, role, email, 
+                    isFirstLogin, firstLogin, isAdmin, isAccountant, hasEmployeeRole 
+                } = response.data;
 
+                const mustSetup = isFirstLogin === true || firstLogin === true;
                 const userData = {
-                    token,
-                    userId,    // Database User ID (e.g., 16)
-                    empId,     // Database Employee ID (The one needed for Leave actions)
-                    username,
-                    role,
-                    email: email || username 
+                    token, userId, empId, username, role,
+                    email: email || username,
+                    isAdmin, isAccountant, hasEmployeeRole
                 };
 
-                // Store the complete session including empId
+                if (mustSetup) {
+                    navigate('/setup-account', {
+                        state: { email: userData.email, userId: userData.userId }
+                    });
+                    return;
+                }
+
                 localStorage.setItem("user_session", JSON.stringify(userData));
-                
-                // Update global state if applicable
                 if (setUser) setUser(userData);
 
-                const userRole = role.toUpperCase().trim();
+                const userRole = typeof role === 'object' 
+                    ? role.roleName.toUpperCase().trim() 
+                    : role.toUpperCase().trim();
 
-                // Navigation logic based on role
-                if (userRole === 'ROLE_EMPLOYEE' || userRole === 'EMPLOYEE') {
-                    navigate('/employee/dashboard'); 
-                } else if (userRole === 'ROLE_ACCOUNTANT' || userRole === 'ACCOUNTANT') {
-                    navigate('/accountant/dashboard');
-                } else if (userRole === 'ROLE_ADMIN' || userRole === 'ADMIN') {
-                    navigate('/admin/dashboard');
-                } else {
-                    setError("Unknown account role. Please contact support.");
-                }
+                if (userRole.includes('ADMIN')) navigate('/admin/dashboard');
+                else if (userRole.includes('ACCOUNTANT')) navigate('/accountant/dashboard');
+                else if (userRole.includes('EMPLOYEE')) navigate('/employee/dashboard');
+                else setError("Unknown account role. Please contact support.");
             }
         } catch (err) {
-            // Capture specific error messages from your AuthServiceImpl
-            setError(err.response?.data?.message || "Server connection error.");
+            setError(err.response?.data?.message || err.response?.data || "Authentication failed.");
         } finally {
             setIsLoading(false);
         }
@@ -74,7 +77,7 @@ const Landing = ({ setUser }) => {
         <div className="login-wrapper">
             <div className="login-card">
                 <div className="login-header">
-                    <h1>NAST</h1>
+                    <h1>Centralized</h1>
                     <p>Payroll Management System</p>
                     <span className="badge">SECURE GATEWAY</span>
                 </div>
@@ -86,11 +89,9 @@ const Landing = ({ setUser }) => {
                             type="text"
                             placeholder="Enter your username"
                             required
-                            autoComplete="username"
+                            autoComplete="off"
                             value={credentials.username}
-                            onChange={(e) =>
-                                setCredentials({ ...credentials, username: e.target.value })
-                            }
+                            onChange={(e) => setCredentials({ ...credentials, username: e.target.value })}
                         />
                     </div>
 
@@ -103,9 +104,7 @@ const Landing = ({ setUser }) => {
                                 required
                                 autoComplete="current-password"
                                 value={credentials.password}
-                                onChange={(e) =>
-                                    setCredentials({ ...credentials, password: e.target.value })
-                                }
+                                onChange={(e) => setCredentials({ ...credentials, password: e.target.value })}
                             />
                             <span
                                 className="password-toggle-icon"
@@ -116,18 +115,10 @@ const Landing = ({ setUser }) => {
                         </div>
                     </div>
 
-                    {error && (
-                        <div className="error-box animate-shake">
-                            {error}
-                        </div>
-                    )}
+                    {error && <div className="error-box">{error}</div>}
 
                     <button type="submit" className="login-btn" disabled={isLoading}>
-                        {isLoading ? (
-                            <span className="spinner">VERIFYING...</span>
-                        ) : (
-                            'SIGN IN'
-                        )}
+                        {isLoading ? "VERIFYING..." : "SIGN IN"}
                     </button>
                 </form>
 

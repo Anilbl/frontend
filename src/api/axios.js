@@ -8,6 +8,7 @@ const api = axios.create({
 });
 
 /* ================= REQUEST INTERCEPTOR ================= */
+// This function runs automatically before every single API call
 api.interceptors.request.use(
   (config) => {
     const sessionData = localStorage.getItem("user_session");
@@ -15,11 +16,11 @@ api.interceptors.request.use(
     if (sessionData) {
       try {
         const session = JSON.parse(sessionData);
-        // Extract token from either 'token' or 'jwt' keys
+        // Supports both 'token' (your new DTO) and 'jwt' keys
         const token = session?.token || session?.jwt;
 
         if (token && token !== "undefined" && token !== "null" && token.length > 10) {
-          // Add Bearer prefix and trim whitespace
+          // Attaching the token here is what allows switching portals without re-login
           config.headers.Authorization = `Bearer ${token.trim()}`;
         }
       } catch (err) {
@@ -37,19 +38,19 @@ api.interceptors.response.use(
   (error) => {
     const status = error.response ? error.response.status : null;
 
-    // 1. Handle Forbidden (403) or Unauthorized (401)
-    if (status === 401 || status === 403) {
+    // Handle session expiration (401)
+    if (status === 401) {
       const isLoginPath = window.location.pathname === "/";
-      
       if (!isLoginPath) {
-        console.error("Access Denied (403/401). Check your Role permissions.");
-        // Optional: Redirect only on 401 (Expired). 
-        // Keep 403 errors on screen so Admin knows they lack permissions.
-        if (status === 401) {
-            localStorage.removeItem("user_session");
-            window.location.href = "/?expired=true";
-        }
+        console.warn("Session expired. Redirecting to login.");
+        localStorage.removeItem("user_session");
+        window.location.href = "/?expired=true";
       }
+    }
+
+    // Handle lack of permission (403)
+    if (status === 403) {
+        console.error("Access Denied: You do not have the required role for this module.");
     }
 
     if (!error.response) {

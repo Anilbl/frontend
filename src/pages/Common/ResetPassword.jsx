@@ -1,16 +1,21 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import "../Login/login.css"; 
+import { FaEye, FaEyeSlash } from "react-icons/fa";
+import "./ResetPassword.css"; 
 
 const ResetPassword = () => {
     const [formData, setFormData] = useState({ token: "", newPassword: "", confirmPassword: "" });
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const navigate = useNavigate();
 
     const handleReset = async (e) => {
         e.preventDefault();
+        setError("");
+
         if (formData.newPassword !== formData.confirmPassword) {
             setError("Passwords do not match!");
             return;
@@ -18,7 +23,6 @@ const ResetPassword = () => {
 
         setLoading(true);
         try {
-            // Matches @PostMapping("/reset-password") in UserController
             await axios.post("http://localhost:8080/api/users/reset-password", null, {
                 params: { 
                     token: formData.token, 
@@ -26,37 +30,79 @@ const ResetPassword = () => {
                 }
             });
             alert("Success! Password updated.");
-            navigate("/"); // Go back to login
+            navigate("/"); 
         } catch (err) {
-            setError("Invalid OTP or server error.");
+            setError(err.response?.data || "Invalid OTP or server error.");
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="login-wrapper">
-            <div className="login-card">
-                <h1>NAST</h1>
-                <h3>Set New Password</h3>
-                {error && <div className="error-msg" style={{color: 'red'}}>{error}</div>}
+        <div className="reset-container">
+            <div className="reset-card">
+                <div className="auth-logo">NAST PAYROLL</div>
+                <h2>Set New Password</h2>
+                <p className="auth-instruction">Enter the 6-digit code sent to your email and your new password.</p>
+                
+                {error && <div className="error-msg">{error}</div>}
+                
                 <form onSubmit={handleReset}>
-                    <div className="input-group" style={{textAlign: 'left'}}>
+                    <div className="input-group">
                         <label>6-DIGIT OTP</label>
-                        <input type="text" placeholder="Enter OTP" onChange={(e) => setFormData({...formData, token: e.target.value})} required />
+                        <input 
+                            type="text" 
+                            placeholder="Enter OTP" 
+                            value={formData.token}
+                            onChange={(e) => setFormData({...formData, token: e.target.value})} 
+                            required 
+                        />
                     </div>
-                    <div className="input-group" style={{textAlign: 'left'}}>
+
+                    <div className="input-group">
                         <label>NEW PASSWORD</label>
-                        <input type="password" placeholder="••••••••" onChange={(e) => setFormData({...formData, newPassword: e.target.value})} required />
+                        <input 
+                            type={showNewPassword ? "text" : "password"} 
+                            placeholder="••••••••" 
+                            value={formData.newPassword}
+                            onChange={(e) => setFormData({...formData, newPassword: e.target.value})} 
+                            required 
+                        />
+                        <button 
+                            type="button" 
+                            className="password-toggle-icon" 
+                            onClick={() => setShowNewPassword(!showNewPassword)}
+                        >
+                            {showNewPassword ? <FaEyeSlash /> : <FaEye />}
+                        </button>
                     </div>
-                    <div className="input-group" style={{textAlign: 'left'}}>
+
+                    <div className="input-group">
                         <label>CONFIRM PASSWORD</label>
-                        <input type="password" placeholder="••••••••" onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})} required />
+                        <input 
+                            type={showConfirmPassword ? "text" : "password"} 
+                            placeholder="••••••••" 
+                            value={formData.confirmPassword}
+                            onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})} 
+                            required 
+                        />
+                        <button 
+                            type="button" 
+                            className="password-toggle-icon" 
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        >
+                            {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+                        </button>
                     </div>
-                    <button type="submit" className="login-btn" disabled={loading}>
+
+                    <button type="submit" className="update-btn" disabled={loading}>
                         {loading ? "UPDATING..." : "Update Password"}
                     </button>
                 </form>
+
+                <button type="button" className="back-to-login-btn" onClick={() => navigate("/")}>
+                    Back to Login
+                </button>
             </div>
         </div>
     );

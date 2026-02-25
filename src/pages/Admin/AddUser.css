@@ -143,3 +143,20 @@
     grid-column: span 1;
   }
 }
+.info-alert {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background-color: #eff6ff;
+  color: #1e40af;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+  border: 1px solid #bfdbfe;
+  font-size: 0.9rem;
+}
+
+.info-alert svg {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}

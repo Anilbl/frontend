@@ -10,10 +10,10 @@ import AccountantLayout from "./components/AccountantLayout";
 import Landing from "./pages/Login/Landing.jsx";
 import ForgotPassword from "./pages/Common/ForgotPassword.jsx";
 import ResetPassword from "./pages/Common/ResetPassword.jsx";
+import InitialSetup from "./pages/Common/InitialSetup.jsx";
 
 /* ================= DASHBOARDS & SUBPAGES ================= */
 import AccountantDashboard from "./pages/Accountant/AccountantDashboard.jsx";
-// Accountant now uses the Admin Payroll component
 import AdminPayroll from "./pages/Admin/Payroll.jsx"; 
 import Salary from "./pages/Accountant/Salary.jsx";
 import Tax from "./pages/Accountant/Tax.jsx";
@@ -30,7 +30,6 @@ import Report from "./pages/Admin/Report.jsx";
 import SystemConfig from "./pages/Admin/SystemConfig/System-Config.jsx";
 import HolidaySettings from "./pages/Admin/Organization/HolidaySettings.jsx";
 
-/* ================= NEW PAYROLL WORKFLOW PAGES ================= */
 import PayrollAdjustment from "./pages/Admin/PayrollAdjustment.jsx"; 
 import PayrollPreview from "./pages/Admin/PayrollPreview.jsx"; 
 
@@ -40,29 +39,30 @@ import LeaveManagement from "./pages/Employee/LeaveManagement.jsx";
 import SalaryAnalytics from "./pages/Employee/SalaryAnalytics.jsx";
 import Settings from "./pages/Employee/Settings.jsx";
 
-/* ================= PROTECTED ROUTE COMPONENT ================= */
-const ProtectedRoute = ({ allowedRoles }) => {
+/* ================= UPDATED PROTECTED ROUTE ================= */
+// This logic now checks BOTH the role string AND the specific boolean flags
+const ProtectedRoute = ({ requiredFlag }) => {
   const savedUser = localStorage.getItem("user_session");
   const user = savedUser ? JSON.parse(savedUser) : null;
 
+  // 1. If no session, go to login
   if (!user || !user.token) return <Navigate to="/" replace />;
 
-  const userRoleRaw = typeof user.role === 'object' ? user.role.roleName : user.role;
-  if (!userRoleRaw) return <Navigate to="/" replace />;
+  // 2. Logic for "No Re-Login" Portal Switching
+  // We check the boolean flags we added to the DTO: isAdmin, isAccountant, hasEmployeeRole
+  const hasAccess = user[requiredFlag] === true;
 
-  const userRole = userRoleRaw.toUpperCase().trim();
-  const rolesToCheck = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
+  // 3. Fallback: If flags are missing for some reason, check the string role
+  const userRole = (typeof user.role === 'object' ? user.role.roleName : user.role || "").toUpperCase();
+  const isAdminString = userRole.includes("ADMIN");
 
-  const hasAccess = rolesToCheck.some(requiredRole => {
-    const cleanRequired = requiredRole.toUpperCase().trim();
-    return (
-      userRole === cleanRequired || 
-      userRole === cleanRequired.replace("ROLE_", "") || 
-      `ROLE_${userRole}` === cleanRequired
-    );
-  });
+  // Admins are "Super Users" - they can access everything
+  if (hasAccess || isAdminString) {
+    return <Outlet />;
+  }
 
-  return hasAccess ? <Outlet /> : <Navigate to="/" replace />;
+  // 4. If no access, kick back to login (or their specific dashboard)
+  return <Navigate to="/" replace />;
 };
 
 /* ================= MAIN APP COMPONENT ================= */
@@ -75,17 +75,18 @@ function App() {
   return (
     <Router>
       <Routes>
+        {/* PUBLIC & AUTH ROUTES */}
         <Route path="/" element={<Landing setUser={setUser} />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/setup-account" element={<InitialSetup />} />
 
-        {/* ACCOUNTANT MODULE */}
-        <Route path="/accountant" element={<ProtectedRoute allowedRoles="ROLE_ACCOUNTANT" />}>
+        {/* ACCOUNTANT MODULE - Checks for 'isAccountant' flag */}
+        <Route path="/accountant" element={<ProtectedRoute requiredFlag="isAccountant" />}>
           <Route element={<AccountantLayout />}>
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<AccountantDashboard />} />
             
-            {/* Payroll processing using AdminPayroll component */}
             <Route path="payroll-processing">
                 <Route index element={<AdminPayroll />} />
                 <Route path="adjust" element={<PayrollAdjustment />} />
@@ -98,8 +99,8 @@ function App() {
           </Route>
         </Route>
 
-        {/* ADMIN MODULE */}
-        <Route path="/admin" element={<ProtectedRoute allowedRoles="ROLE_ADMIN" />}>
+        {/* ADMIN MODULE - Checks for 'isAdmin' flag */}
+        <Route path="/admin" element={<ProtectedRoute requiredFlag="isAdmin" />}>
           <Route element={<AdminLayout />}>
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<AdminDashboard />} />
@@ -115,7 +116,6 @@ function App() {
             <Route path="leave" element={<Leave />} />
             <Route path="holidays" element={<HolidaySettings />} />
             
-            {/* Payroll section */}
             <Route path="payroll">
               <Route index element={<AdminPayroll />} />
               <Route path="adjust" element={<PayrollAdjustment />} />
@@ -127,8 +127,8 @@ function App() {
           </Route>
         </Route>
 
-        {/* EMPLOYEE MODULE */}
-        <Route path="/employee" element={<ProtectedRoute allowedRoles="ROLE_EMPLOYEE" />}>
+        {/* EMPLOYEE MODULE - Checks for 'hasEmployeeRole' flag */}
+        <Route path="/employee" element={<ProtectedRoute requiredFlag="hasEmployeeRole" />}>
           <Route element={<EmployeeLayout />}>
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<EmployeeDashboard />} />

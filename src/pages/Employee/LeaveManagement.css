@@ -1,16 +1,16 @@
-/* Container fitted to EmployeeLayout content area */
+/* Container: Stretching to fill the EmployeeLayout content area */
 .leave-module-wrapper {
-  padding: 10px 40px;
-  height: 100%;
+  padding: 0; /* Removed side padding so it aligns with Sidebar */
+  width: 100%;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   box-sizing: border-box;
 }
 
-/* Centered Top Title */
+/* Updated to Left-Align to remove professional gap */
 .module-header-center {
-  text-align: center;
+  text-align: left; /* Changed from center to left */
   margin-bottom: 25px;
 }
 
@@ -22,15 +22,15 @@
   letter-spacing: 2px;
 }
 
-/* Grid split 35% / 65% */
+/* Grid split: Adjusted to fill the width better */
 .leave-top-layout {
   display: grid;
-  grid-template-columns: 0.35fr 0.65fr;
+  grid-template-columns: 350px 1fr; /* Fixed width for quota, flexible for form */
   gap: 30px;
   margin-bottom: 30px;
 }
 
-/* Balance Box Styling (Small) */
+/* Balance Box Styling (Kept exactly as provided) */
 .balance-box-compact {
   background: linear-gradient(135deg, #0f172a 0%, #334155 100%);
   border-radius: 20px;
@@ -48,7 +48,7 @@
 .days-unit { font-size: 1.2rem; color: #94a3b8; margin-left: 5px; }
 .approved-footer { border-top: 1px solid rgba(255,255,255,0.1); width: 100%; padding-top: 15px; text-align: center; font-size: 14px; }
 
-/* Apply Box Styling (Large/Tall) */
+/* Apply Box Styling (Kept exactly as provided) */
 .apply-box-large {
   background: white;
   border-radius: 20px;
@@ -57,11 +57,11 @@
 }
 
 .apply-title { font-size: 20px; font-weight: 700; color: #1e293b; margin-bottom: 20px; }
-
 .leave-form-grid { display: flex; flex-direction: column; gap: 15px; }
 .form-field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 .date-group label { display: block; font-size: 12px; font-weight: 700; color: #64748b; margin-bottom: 5px; }
 
+/* Selection Area and Inputs (Kept exactly as provided) */
 input, select, textarea {
   width: 100%;
   padding: 14px;
@@ -72,7 +72,7 @@ input, select, textarea {
 }
 textarea { min-height: 110px; resize: vertical; }
 
-.submit-action-center { display: flex; justify-content: center; margin-top: 10px; }
+.submit-action-center { display: flex; justify-content: flex-start; margin-top: 10px; }
 .btn-apply-gradient {
   background: linear-gradient(45deg, #2563eb, #9333ea);
   color: white;
@@ -84,7 +84,7 @@ textarea { min-height: 110px; resize: vertical; }
   transition: 0.3s ease;
 }
 
-/* History Section */
+/* History Section - Full Width */
 .leave-history-container {
   flex: 1;
   background: white;
@@ -115,58 +115,12 @@ textarea { min-height: 110px; resize: vertical; }
   text-transform: uppercase;
 }
 .leave-data-table td { padding: 18px 30px; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
-.bold-days { font-weight: 800; color: #1e293b; }
 
-/* Status Pills */
+/* Status Pills & Helpers (Kept exactly as provided) */
 .status-pill { padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: 800; text-transform: uppercase; }
 .status-pill.approved { background: #dcfce7; color: #166534; }
 .status-pill.pending { background: #fef9c3; color: #854d0e; }
 .status-pill.rejected { background: #ffebee; color: #c62828; }
 
-/* Toast Notifications */
-.success-toast-message, .error-toast-message {
-  position: fixed; 
-  top: 30px; 
-  right: 40px; 
-  padding: 15px 30px; 
-  border-radius: 12px; 
-  font-weight: 700; 
-  box-shadow: 0 10px 20px rgba(0,0,0,0.1); 
-  z-index: 999;
-  animation: slideIn 0.4s ease-out;
-}
-
-.success-toast-message { background: #10b981; color: white; }
-.error-toast-message { background: #ef4444; color: white; }
-
-@keyframes slideIn {
-  from { transform: translateX(100%); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
-}
-
-/* Approval Column Helpers */
+.rejection-text { color: #c62828; font-weight: 600; font-size: 13px; font-style: italic; }
 .dash-text { color: #cbd5e1; font-weight: 800; display: block; text-align: center; }
-.admin-text { color: #1e293b; font-weight: 600; font-size: 13px; background: #f1f5f9; padding: 2px 8px; border-radius: 4px; }
-.date-text { color: #64748b; font-size: 12px; font-family: 'Courier New', Courier, monospace; }
-
-.leave-data-table td:nth-child(6), .leave-data-table td:nth-child(7) { text-align: center; }
-.loading-state { display: flex; align-items: center; justify-content: center; height: 100vh; font-weight: bold; color: #3b82f6; }
-/* Previous styles remain... update the table width if needed */
-
-.rejection-text {
-  color: #c62828;
-  font-weight: 600;
-  font-size: 13px;
-  font-style: italic;
-  display: block;
-  max-width: 200px;
-}
-
-.remarks-cell {
-  background: #fffcfc;
-}
-
-/* Adjust grid if needed for 7 columns */
-.leave-data-table thead th:nth-child(6) {
-  width: 200px;
-}

@@ -1,101 +1,165 @@
-.layout-container {
-  display: flex;
-  min-height: 100vh;
-  background-color: #f8fafc;
+:root {
+  --employee-sidebar-width: 260px; /* Matching Admin Sidebar Width */
+  --employee-footer-bg: #1e293b; 
 }
 
-.sidebar {
-  width: 260px;
-  background-color: #1e3a8a; /* Professional Deep Blue */
+.employee-layout-container {
+  display: flex;
+  min-height: 100vh;
+  background-color: #f8f9fc;
+}
+
+/* Sidebar - Exact logic from AdminLayout */
+.employee-sidebar {
+  width: var(--employee-sidebar-width);
+  background-color: #1e3a8a; /* Deep Blue for Employee */
   color: white;
   display: flex;
   flex-direction: column;
-  position: fixed;
+  position: fixed; /* Keeps sidebar from moving */
   height: 100vh;
-  box-shadow: 4px 0 10px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  box-shadow: 2px 0 10px rgba(0,0,0,0.1);
 }
 
 .sidebar-header {
-  padding: 2rem 1.5rem;
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  padding: 1.5rem;
+  font-weight: bold;
+  font-size: 1.2rem;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
 }
 
-.brand-logo {
-  background: white;
-  color: #1e3a8a;
-  padding: 8px;
-  font-weight: 800;
-  border-radius: 8px;
-}
-
-.brand-name {
-  font-size: 1.25rem;
-  font-weight: 700;
-  letter-spacing: 0.5px;
+.user-welcome {
+  font-size: 0.8rem;
+  color: #bfdbfe;
+  margin-top: 5px;
+  font-weight: normal;
 }
 
 .sidebar-nav {
   flex: 1;
-  padding: 0 1rem;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  overflow-y: auto;
 }
 
-.sidebar-nav a {
+.sidebar-nav::-webkit-scrollbar { width: 0px; }
+
+.menu-list { flex: 1; padding: 10px 0; }
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 1.5rem;
   text-decoration: none;
   color: #bfdbfe;
-  padding: 12px 16px;
-  border-radius: 8px;
-  font-weight: 500;
-  transition: all 0.2s ease;
+  font-size: 0.9rem;
+  transition: 0.2s;
 }
 
-.sidebar-nav a:hover, .sidebar-nav a.active {
-  background-color: rgba(255, 255, 255, 0.1);
+.nav-item:hover, .nav-item.active {
+  background: rgba(255, 255, 255, 0.1);
   color: white;
 }
 
-/* Sidebar Footer & Noticeable Logout Button */
-.sidebar-footer {
-  padding: 1.5rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+.nav-item.active {
+  border-left: 4px solid #3b82f6;
 }
 
-.logout-btn-noticeable {
+/* Sidebar Actions / Switcher */
+.sidebar-actions-group {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+.portal-label {
+  font-size: 0.7rem;
+  color: #93c5fd;
+  font-weight: 800;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.back-nav-btn {
   width: 100%;
-  padding: 14px;
-  background-color: #ef4444; /* Bright Noticeable Red */
+  padding: 10px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  background: #334155;
   color: white;
   border: none;
-  border-radius: 10px;
-  font-weight: 700;
-  font-size: 1rem;
+  text-align: left;
+  margin-bottom: 5px;
+  transition: 0.2s;
+}
+
+.back-nav-btn:hover { background: #475569; }
+
+.logout-btn {
+  width: 100%;
+  padding: 12px;
+  border-radius: 6px;
+  background: #ef4444;
+  color: white;
+  border: none;
+  font-weight: 600;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 6px rgba(239, 68, 68, 0.2);
+  gap: 10px;
 }
 
-.logout-btn-noticeable:hover {
-  background-color: #dc2626;
-  box-shadow: 0 6px 15px rgba(239, 68, 68, 0.4);
-  transform: translateY(-2px);
-}
-
-.logout-btn-noticeable:active {
-  transform: translateY(0);
-}
-
-/* Main Content Adjustment */
-.main-content {
+/* --- THE FIX: SHARED WRAPPER LOGIC --- */
+.employee-main-wrapper {
   flex: 1;
-  margin-left: 260px; /* Width of the sidebar */
-  padding: 2rem;
+  margin-left: var(--employee-sidebar-width); /* Space for fixed sidebar */
+  display: flex;
+  flex-direction: column;
   min-height: 100vh;
+  width: calc(100% - var(--employee-sidebar-width)); /* Explicitly define width */
+}
+
+/* Sticky Header (Like Accountant) */
+.top-sticky-header {
+  background: white;
+  padding: 0.8rem 2rem;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 90;
+}
+
+.page-title { margin: 0; font-size: 1.1rem; color: #1e293b; font-weight: 700; }
+
+.employee-main {
+  flex: 1; /* Pushes footer down */
+  display: flex;
+  flex-direction: column;
+}
+
+.employee-content {
+  padding: 2rem;
+  /* Crucial: Ensure children don't center themselves */
+  display: flex;
+  flex-direction: column;
+  align-items: stretch; 
+}
+
+.employee-footer {
+  background-color: var(--employee-footer-bg);
+  color: #94a3b8;
+  text-align: center;
+  padding: 1.2rem 0;
+  font-size: 0.85rem;
+  width: 100%;
+  margin-top: auto;
 }

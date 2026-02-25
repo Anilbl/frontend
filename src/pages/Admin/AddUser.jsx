@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getUserById, createUser, updateUser } from "../../api/userApi";
 import { getRoles } from "../../api/roleApi"; 
-import { FaEye, FaEyeSlash } from "react-icons/fa"; // npm install react-icons
+import { FaEye, FaEyeSlash, FaInfoCircle } from "react-icons/fa"; 
 import "./AddUser.css"; 
 
 export default function AddUser() {
@@ -68,7 +68,6 @@ export default function AddUser() {
     setStatusMsg({ type: "", text: "" });
 
     try {
-      // Constructing clean payload
       const payload = {
         username: formData.username,
         email: formData.email,
@@ -77,21 +76,23 @@ export default function AddUser() {
       };
 
       if (isEditMode) {
+        // If password is provided in edit mode, include it
         if (formData.password) payload.password = formData.password;
         await updateUser(id, payload);
         setStatusMsg({ type: "success", text: "User updated successfully!" });
       } else {
-        payload.password = formData.password;
+        // NEW CONCEPT: Backend handles password generation and emailing
         await createUser(payload);
-        setStatusMsg({ type: "success", text: "User created successfully!" });
+        setStatusMsg({ 
+          type: "success", 
+          text: "User created! Default credentials have been sent to their email." 
+        });
       }
       
-      // Success Redirect Logic
-      setTimeout(() => navigate("/admin/users"), 2000);
+      setTimeout(() => navigate("/admin/users"), 2500);
 
     } catch (err) {
       console.error("Submit error:", err);
-      // Extracts message from your GlobalExceptionHandler
       const errorDetail = err.response?.data?.message || "Check your network connection.";
       setStatusMsg({ type: "error", text: errorDetail });
     } finally {
@@ -102,7 +103,7 @@ export default function AddUser() {
   return (
     <div className="app-canvas">
       <header className="page-header">
-        <h3>{isEditMode ? "Update User" : "Create New User"}</h3>
+        <h3>{isEditMode ? "Update User Account" : "Register New User"}</h3>
       </header>
 
       {statusMsg.text && (
@@ -110,52 +111,74 @@ export default function AddUser() {
       )}
 
       <div className="form-card-container">
+        {!isEditMode && (
+          <div className="info-alert">
+            <FaInfoCircle />
+            <span>A system-generated password will be sent to the user's email automatically.</span>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="user-form">
           <div className="form-grid">
             <div className="form-group">
-              <label>Username</label>
-              <input name="username" value={formData.username} onChange={handleChange} required />
+              <label>Default/Initial Username</label>
+              <input 
+                name="username" 
+                placeholder="e.g. jdoe123"
+                value={formData.username} 
+                onChange={handleChange} 
+                required 
+              />
             </div>
 
             <div className="form-group">
-              <label>Email</label>
-              <input type="email" name="email" value={formData.email} onChange={handleChange} required />
+              <label>Registered Email Address</label>
+              <input 
+                type="email" 
+                name="email" 
+                placeholder="user@example.com"
+                value={formData.email} 
+                onChange={handleChange} 
+                required 
+              />
             </div>
 
-            <div className="form-group">
-              <label>Password {isEditMode && "(Optional)"}</label>
-              <div style={{ position: "relative" }}>
-                <input 
-                  type={showPassword ? "text" : "password"} 
-                  name="password" 
-                  value={formData.password} 
-                  onChange={handleChange} 
-                  required={!isEditMode}
-                  style={{ width: "100%", paddingRight: "40px" }}
-                />
-                <button 
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  style={{
-                    position: "absolute", right: "10px", top: "50%", transform: "translateY(-50%)",
-                    background: "none", border: "none", cursor: "pointer", color: "#666"
-                  }}
-                >
-                  {showPassword ? <FaEyeSlash /> : <FaEye />}
-                </button>
+            {/* Password field only appears in Edit Mode */}
+            {isEditMode && (
+              <div className="form-group">
+                <label>Reset Password (Optional)</label>
+                <div style={{ position: "relative" }}>
+                  <input 
+                    type={showPassword ? "text" : "password"} 
+                    name="password" 
+                    value={formData.password} 
+                    onChange={handleChange} 
+                    style={{ width: "100%", paddingRight: "40px" }}
+                  />
+                  <button 
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{
+                      position: "absolute", right: "10px", top: "50%", transform: "translateY(-50%)",
+                      background: "none", border: "none", cursor: "pointer", color: "#666"
+                    }}
+                  >
+                    {showPassword ? <FaEyeSlash /> : <FaEye />}
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="form-group">
-              <label>Assign Role</label>
+              <label>Assign Organizational Role</label>
               <select name="roleId" value={formData.role.roleId} onChange={handleChange} required>
-                <option value="">-- Select --</option>
+                <option value="">-- Select Role --</option>
                 {roles.map(r => <option key={r.roleId} value={r.roleId}>{r.roleName}</option>)}
               </select>
             </div>
 
             <div className="form-group">
-              <label>Status</label>
+              <label>Account Status</label>
               <select name="status" value={formData.status} onChange={handleChange}>
                 <option value="ACTIVE">Active</option>
                 <option value="INACTIVE">Inactive</option>
@@ -164,9 +187,11 @@ export default function AddUser() {
           </div>
 
           <div className="form-actions">
-            <button type="button" onClick={() => navigate("/admin/users")}>Cancel</button>
+            <button type="button" className="details-btn" onClick={() => navigate("/admin/users")}>
+              Cancel
+            </button>
             <button type="submit" disabled={loading} className="primary-btn">
-              {loading ? "Processing..." : (isEditMode ? "Save" : "Create")}
+              {loading ? "Processing..." : (isEditMode ? "Update User" : "Create & Send Email")}
             </button>
           </div>
         </form>
