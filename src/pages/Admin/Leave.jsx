@@ -116,7 +116,6 @@ const LeaveAdmin = () => {
         <h2 className="leave-header">Leave Management</h2>
         
         <div className="leave-filter-bar">
-          {/* SEARCH BAR COMES FIRST AND GROWS */}
           <input 
             type="text" 
             placeholder="Search Name or ID..." 
@@ -125,7 +124,6 @@ const LeaveAdmin = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
           
-          {/* STATUS IS SMALL */}
           <select value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)} className="filter-select">
             <option value="Pending">Pending</option>
             <option value="Approved">Approved</option>
@@ -133,7 +131,6 @@ const LeaveAdmin = () => {
             <option value="All">All</option>
           </select>
 
-          {/* DATES ARE SMALL */}
           <div className="date-group">
             <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className="filter-select-mini">
               {months.map(m => (
@@ -182,9 +179,17 @@ const LeaveAdmin = () => {
                     <td className="stat-cell">{attendanceStats[leave.employee?.empId] || 0}</td>
                     <td className="stat-cell">{leave.totalDays || 0}</td>
                     <td>
-                      <span className={`status-badge ${leave.status?.toLowerCase()}`}>
-                        {leave.status}
-                      </span>
+                      <div className="status-cell-wrapper">
+                        <span className={`status-badge ${leave.status?.toLowerCase()}`}>
+                          {leave.status}
+                        </span>
+                        {/* REJECTION REASON LOGIC */}
+                        {leave.status === "Rejected" && leave.rejectionReason && (
+                          <div className="rejection-reason-text">
+                            <strong>Reason:</strong> {leave.rejectionReason}
+                          </div>
+                        )}
+                      </div>
                     </td>
                     <td>
                       {leave.status === "Pending" ? (
@@ -217,7 +222,7 @@ const LeaveAdmin = () => {
             <textarea 
               value={rejectionReason}
               onChange={(e) => setRejectionReason(e.target.value)}
-              placeholder="Reason..."
+              placeholder="Why are you rejecting this request? (Required)"
               required
             />
             <div className="modal-actions">
@@ -226,7 +231,7 @@ const LeaveAdmin = () => {
                 className="btn-confirm-reject" 
                 onClick={() => submitStatusUpdate(selectedLeaveId, "Rejected", rejectionReason)}
                 disabled={!rejectionReason.trim()}
-              >Confirm</button>
+              >Confirm Rejection</button>
             </div>
           </div>
         </div>

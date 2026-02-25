@@ -24,7 +24,7 @@ const AccountantLayout = () => {
   const getPageTitle = () => {
     const path = location.pathname;
     if (path.includes('dashboard')) return 'Financial Dashboard';
-    if (path.includes('salary')) return 'Salary Structure';
+    if (path.includes('salary')) return 'Salary Management';
     if (path.includes('payroll')) return 'Payroll Verification';
     if (path.includes('tax')) return 'Tax & Compliance';
     return 'Finance Portal';
@@ -40,7 +40,7 @@ const AccountantLayout = () => {
       <aside className="sidebar">
         <div className="sidebar-top-section">
           <div className="sidebar-logo">
-            <h2>NAST</h2>
+            <h2>Accountant Portal</h2>
             <p>Finance Management</p>
           </div>
 
@@ -105,7 +105,7 @@ const AccountantLayout = () => {
         </main>
 
         <footer className="accountant-footer">
-          &copy; {new Date().getFullYear()} Payroll Management System | Developed by NAST
+          &copy; {new Date().getFullYear()} Payroll Management System. All rights reserved.
         </footer>
       </div>
     </div>

@@ -211,3 +211,19 @@
 .pg-btn { padding: 0.5rem 1rem; border: 1px solid var(--border-light); background: white; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500; }
 .pg-num { width: 36px; height: 36px; border: 1px solid var(--border-light); background: white; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.85rem; }
 .pg-num.active { background: var(--primary-blue); color: white; border-color: var(--primary-blue); }
+.status-cell-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rejection-reason-text {
+  font-size: 0.75rem;
+  color: #ef4444; /* Red color to match 'Rejected' theme */
+  background: #fee2e2;
+  padding: 4px 8px;
+  border-radius: 4px;
+  max-width: 150px;
+  word-wrap: break-word;
+  line-height: 1.2;
+}

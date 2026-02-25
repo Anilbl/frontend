@@ -32,6 +32,18 @@ const HolidaySettings = () => {
     const [isRangeMode, setIsRangeMode] = useState(false);
     const [rangeStart, setRangeStart] = useState(null);
 
+    // --- MODAL STATE ---
+    const [modalConfig, setModalConfig] = useState({
+        isOpen: false,
+        title: "",
+        type: "input", // "input" or "confirm"
+        value: "",
+        onConfirm: () => {},
+        confirmLabel: "Okay"
+    });
+
+    const closeHeaderModal = () => setModalConfig({ ...modalConfig, isOpen: false, value: "" });
+
     const fetchSavedHolidays = useCallback(async (date) => {
         const year = date.getFullYear();
         const month = date.getMonth() + 1;
@@ -56,26 +68,46 @@ const HolidaySettings = () => {
         fetchSavedHolidays(viewDate);
     }, [viewDate, fetchSavedHolidays]);
 
-    const handleDelete = async (id) => {
-        if (window.confirm("Are you sure you want to delete this record?")) {
-            try {
-                await api.delete(`/holidays/${id}`);
-                fetchSavedHolidays(viewDate);
-            } catch (err) { alert("Delete failed."); }
-        }
+    // Replacement for window.confirm
+    const handleDelete = (id) => {
+        setModalConfig({
+            isOpen: true,
+            title: "Delete Holiday",
+            type: "confirm",
+            value: "Are you sure you want to delete this record?",
+            confirmLabel: "Delete",
+            onConfirm: async () => {
+                try {
+                    await api.delete(`/holidays/${id}`);
+                    fetchSavedHolidays(viewDate);
+                    closeHeaderModal();
+                } catch (err) { alert("Delete failed."); }
+            }
+        });
     };
 
-    const handleEdit = async (holiday) => {
-        const newDesc = prompt("Update Description:", holiday.description);
-        if (newDesc && newDesc !== holiday.description) {
-            try {
-                await api.put(`/holidays/${holiday.id}`, { ...holiday, description: newDesc });
-                fetchSavedHolidays(viewDate);
-            } catch (err) { alert("Update failed."); }
-        }
+    // Replacement for window.prompt (Edit)
+    const handleEdit = (holiday) => {
+        setModalConfig({
+            isOpen: true,
+            title: "Update Description",
+            type: "input",
+            value: holiday.description,
+            confirmLabel: "Update",
+            onConfirm: async (newDesc) => {
+                if (newDesc && newDesc !== holiday.description) {
+                    try {
+                        await api.put(`/holidays/${holiday.id}`, { ...holiday, description: newDesc });
+                        fetchSavedHolidays(viewDate);
+                        closeHeaderModal();
+                    } catch (err) { alert("Update failed."); }
+                }
+            }
+        });
     };
 
-    const handleDateClick = async (clickedDate) => {
+    // Replacement for window.prompt (New Date Click)
+    const handleDateClick = (clickedDate) => {
         const checkDate = new Date(clickedDate).setHours(0,0,0,0);
         const todayNoTime = new Date().setHours(0,0,0,0);
 
@@ -88,35 +120,53 @@ const HolidaySettings = () => {
             if (!rangeStart) {
                 setRangeStart(clickedDate);
             } else {
-                const desc = prompt("Enter description for range:");
-                if (desc) {
-                    try {
-                        await api.post('/holidays/bulk', null, {
-                            params: {
-                                start: rangeStart.toLocaleDateString('en-CA'),
-                                end: clickedDate.toLocaleDateString('en-CA'),
-                                description: desc,
-                                type: "NATIONAL"
-                            }
-                        });
-                        setRangeStart(null);
-                        setIsRangeMode(false);
-                        fetchSavedHolidays(viewDate);
-                    } catch (err) { alert("Failed to add range."); }
-                }
+                setModalConfig({
+                    isOpen: true,
+                    title: "Add Range Description",
+                    type: "input",
+                    value: "",
+                    confirmLabel: "Save Range",
+                    onConfirm: async (desc) => {
+                        if (desc) {
+                            try {
+                                await api.post('/holidays/bulk', null, {
+                                    params: {
+                                        start: rangeStart.toLocaleDateString('en-CA'),
+                                        end: clickedDate.toLocaleDateString('en-CA'),
+                                        description: desc,
+                                        type: "NATIONAL"
+                                    }
+                                });
+                                setRangeStart(null);
+                                setIsRangeMode(false);
+                                fetchSavedHolidays(viewDate);
+                                closeHeaderModal();
+                            } catch (err) { alert("Failed to add range."); }
+                        }
+                    }
+                });
             }
         } else {
-            const desc = prompt(`Name for ${clickedDate.toLocaleDateString('en-CA')}:`);
-            if (desc) {
-                try {
-                    await api.post('/holidays', {
-                        holidayDate: clickedDate.toLocaleDateString('en-CA'),
-                        description: desc,
-                        holidayType: "NATIONAL"
-                    });
-                    fetchSavedHolidays(viewDate);
-                } catch (err) { alert("Failed to add."); }
-            }
+            setModalConfig({
+                isOpen: true,
+                title: `Holiday for ${clickedDate.toLocaleDateString('en-CA')}`,
+                type: "input",
+                value: "",
+                confirmLabel: "Add Holiday",
+                onConfirm: async (desc) => {
+                    if (desc) {
+                        try {
+                            await api.post('/holidays', {
+                                holidayDate: clickedDate.toLocaleDateString('en-CA'),
+                                description: desc,
+                                holidayType: "NATIONAL"
+                            });
+                            fetchSavedHolidays(viewDate);
+                            closeHeaderModal();
+                        } catch (err) { alert("Failed to add."); }
+                    }
+                }
+            });
         }
     };
 
@@ -215,6 +265,38 @@ const HolidaySettings = () => {
                     )}
                 </div>
             </div>
+
+            {/* --- CUSTOM MODAL UI --- */}
+            {modalConfig.isOpen && (
+                <div className="modal-overlay">
+                    <div className="custom-modal">
+                        <h3>{modalConfig.title}</h3>
+                        
+                        {modalConfig.type === "input" ? (
+                            <input 
+                                type="text" 
+                                className="modal-input"
+                                autoFocus
+                                value={modalConfig.value}
+                                onChange={(e) => setModalConfig({ ...modalConfig, value: e.target.value })}
+                                placeholder="Enter holiday name..."
+                            />
+                        ) : (
+                            <p className="modal-text">{modalConfig.value}</p>
+                        )}
+
+                        <div className="modal-footer">
+                            <button className="btn-cancel" onClick={closeHeaderModal}>Cancel</button>
+                            <button 
+                                className="btn-okay" 
+                                onClick={() => modalConfig.onConfirm(modalConfig.value)}
+                            >
+                                {modalConfig.confirmLabel}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

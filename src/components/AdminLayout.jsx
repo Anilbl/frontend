@@ -75,7 +75,7 @@ const AdminLayout = () => {
       {/* SIDEBAR FIXED TO LEFT */}
       <aside className="admin-sidebar">
         <div className="sidebar-header">
-          <div className="logo-box">Payroll System</div>
+          <div className="logo-box">Admin Payroll Portal</div>
           {user && <div className="user-welcome">Welcome, {user.username}</div>}
         </div>
 

@@ -66,9 +66,6 @@ const Tax = () => {
           <h1 className="tax-title">Tax & Compliance</h1>
           <p className="tax-subtitle">Government Tax Slabs for FY 2025/26 (Nepal Policy)</p>
         </div>
-        <button className="btn-update-reg" onClick={() => setShowModal(true)}>
-          Update Regulations
-        </button>
       </div>
 
       <div className="filter-tab-container">

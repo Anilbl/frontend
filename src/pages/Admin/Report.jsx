@@ -8,38 +8,40 @@ import {
   Tooltip,
   Legend,
   PointElement,
-  LineElement
+  LineElement,
+  Title
 } from "chart.js";
+import ChartDataLabels from "chartjs-plugin-datalabels"; 
 import api from "../../api/axios";
 import "./Report.css";
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend, PointElement, LineElement);
+// Register ChartJS components and the DataLabels plugin
+ChartJS.register(
+  CategoryScale, 
+  LinearScale, 
+  BarElement, 
+  Tooltip, 
+  Legend, 
+  PointElement, 
+  LineElement, 
+  Title,
+  ChartDataLabels
+);
 
 export default function Report() {
   const currentYear = new Date().getFullYear();
-  const currentMonthIdx = new Date().getMonth();
   const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
   const [year, setYear] = useState(currentYear);
-  const [monthName, setMonthName] = useState(months[currentMonthIdx]);
-  const [loading, setLoading] = useState(false);
-
-  const [stats, setStats] = useState({
-    totalGross: 0,
-    totalNet: 0,
-    totalTax: 0,
-    paidCount: 0, // This is the global count of paid records
-    departments: [] 
-  });
-
-  const [monthlyPayrollData, setMonthlyPayrollData] = useState([]);
+  const [monthName, setMonthName] = useState(months[new Date().getMonth()]);
+  const [stats, setStats] = useState({ totalGross: 0, totalNet: 0, totalTax: 0, paidCount: 0, departments: [] });
+  const [monthlyPayrollData, setMonthlyPayrollData] = useState(new Array(12).fill(0));
 
   useEffect(() => {
     fetchReportData();
   }, [year, monthName]);
 
   const fetchReportData = async () => {
-    setLoading(true);
     try {
       const monthNum = months.indexOf(monthName) + 1;
       const [summaryRes, chartRes] = await Promise.all([
@@ -48,11 +50,14 @@ export default function Report() {
       ]);
 
       setStats(summaryRes.data);
-      setMonthlyPayrollData(chartRes.data);
+      
+      const fullYearData = months.map(m => {
+        const found = chartRes.data.find(d => d.month === m);
+        return found ? found.amount : 0;
+      });
+      setMonthlyPayrollData(fullYearData);
     } catch (error) {
-      console.error("Error fetching report analytics:", error);
-    } finally {
-      setLoading(false);
+      console.error("Fetch error:", error);
     }
   };
 
@@ -60,6 +65,69 @@ export default function Report() {
     return new Intl.NumberFormat('en-NP', {
       style: 'currency', currency: 'NPR', minimumFractionDigits: 0
     }).format(num || 0).replace("NPR", "Rs.");
+  };
+
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    layout: {
+      padding: {
+        top: 30, // Space specifically for the datalabels above the bars
+        bottom: 10
+      }
+    },
+    plugins: {
+      legend: { display: false },
+      datalabels: {
+        display: true,
+        color: "#1e293b", // Darker slate for better visibility
+        anchor: "end",
+        align: "top",
+        offset: 5,
+        font: { 
+          weight: "700", 
+          size: 11,
+          family: "'Inter', sans-serif"
+        },
+        formatter: (value) => {
+          if (value === 0) return "";
+          // Format as '41.4k' or similar for the top of the bar
+          return value >= 1000 ? (value / 1000).toFixed(1) + 'k' : value;
+        }
+      },
+      tooltip: {
+        backgroundColor: '#1e293b',
+        padding: 12,
+        titleFont: { size: 14 },
+        bodyFont: { size: 13 },
+        callbacks: {
+          label: (context) => ` Total: ${formatCurrency(context.raw)}`
+        }
+      }
+    },
+    scales: {
+      x: {
+        grid: { display: false },
+        ticks: { 
+          font: { size: 11, weight: '600' },
+          color: '#64748b'
+        }
+      },
+      y: {
+        beginAtZero: true,
+        grace: '15%', // CRITICAL: Adds 15% extra height to the Y-axis so labels don't cut off
+        grid: { 
+          color: '#f1f5f9',
+          drawTicks: false
+        },
+        ticks: {
+          color: '#94a3b8',
+          font: { size: 10 },
+          padding: 10,
+          callback: (value) => value >= 1000 ? (value / 1000) + 'k' : value
+        }
+      }
+    }
   };
 
   return (
@@ -95,27 +163,30 @@ export default function Report() {
 
       <div className="main-content-grid">
         <div className="content-card chart-card">
-          <div className="card-header"><h3>Annual Expenditure Trend</h3></div>
+          <div className="card-header"><h3>Annual Expenditure Trend ({year})</h3></div>
           <div className="chart-wrapper">
-            <Bar data={{
-              labels: monthlyPayrollData.map(item => item.month),
-              datasets: [{
-                label: "Expenditure (NPR)",
-                data: monthlyPayrollData.map(item => item.amount),
-                backgroundColor: "rgba(25, 118, 210, 0.8)",
-                borderRadius: 6
-              }]
-            }} options={{ responsive: true, maintainAspectRatio: false }} />
+            <Bar 
+              options={chartOptions}
+              data={{
+                labels: months,
+                datasets: [{
+                  data: monthlyPayrollData,
+                  backgroundColor: "rgba(59, 130, 246, 0.8)", // Matching blue from your SS
+                  hoverBackgroundColor: "#2563eb",
+                  borderRadius: 6,
+                  barPercentage: 0.6, // Slimmer bars for a more professional look
+                  categoryPercentage: 0.8
+                }]
+              }} 
+            />
           </div>
         </div>
 
-        {/* DEPARTMENTAL BREAKDOWN WITH DUAL COUNTS */}
         <div className="content-card attendance-card">
           <div className="card-header">
             <h3>Departmental Workforce</h3>
             <span className="date-tag">Paid vs Total</span>
           </div>
-
           <div className="attendance-list">
             {stats.departments?.map((d, i) => (
               <div key={i} className="dept-report-row">
@@ -126,30 +197,17 @@ export default function Report() {
                     <span className="count-badge total">/ {d.totalEmployees || 0} Total</span>
                   </div>
                 </div>
-                
-                <div className="dept-financial-detail">
-                  <div className="detail-item">
-                    <span className="tiny-label">Department Net</span>
-                    <span className="value-bold">{formatCurrency(d.net)}</span>
-                  </div>
-                </div>
-                
                 <div className="report-progress-bar">
                   <div 
                     className="fill" 
                     style={{ 
-                      // Progress bar shows how many are paid vs total in that department
-                      width: `${d.totalEmployees > 0 ? (d.paidCount / d.totalEmployees) * 100 : 0}%`,
-                      backgroundColor: (d.paidCount === d.totalEmployees && d.totalEmployees > 0) ? '#10b981' : '#6366f1'
+                      width: `${d.totalEmployees > 0 ? (d.paidCount / d.totalEmployees) * 100 : 0}%`, 
+                      backgroundColor: (d.paidCount === d.totalEmployees && d.totalEmployees > 0) ? '#10b981' : '#6366f1' 
                     }}
                   ></div>
                 </div>
               </div>
             ))}
-            
-            {(!stats.departments || stats.departments.length === 0) && (
-              <div className="empty-state">No departmental records for this period.</div>
-            )}
           </div>
         </div>
       </div>

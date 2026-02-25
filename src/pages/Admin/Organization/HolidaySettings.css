@@ -236,7 +236,8 @@
     opacity: 0.4;
     cursor: not-allowed;
 }
-/* Table Action Column Styles *//* Action Buttons Styling */
+
+/* Table Action Column Styles */
 .action-cell {
     display: flex;
     justify-content: center;
@@ -260,25 +261,17 @@
     transition: all 0.2s ease;
 }
 
-/* Edit Icon: Standard Blue/Slate with Pen and Underbar look */
-.edit-btn {
-    color: #4b5563; /* Gray-600 */
-}
-
+.edit-btn { color: #4b5563; }
 .edit-btn:hover {
     background: #eff6ff;
-    color: #2563eb; /* Blue-600 */
+    color: #2563eb;
     border-color: #bfdbfe;
 }
 
-/* Delete Icon: Standard Destructive Red */
-.delete-btn {
-    color: #94a3b8; /* Gray-400 */
-}
-
+.delete-btn { color: #94a3b8; }
 .delete-btn:hover {
     background: #fef2f2;
-    color: #dc2626; /* Red-600 */
+    color: #dc2626;
     border-color: #fecaca;
 }
 
@@ -293,4 +286,113 @@
     color: #4e73df;
     font-weight: 600;
     font-size: 0.85rem;
+}
+
+/* --- NEW CUSTOM MODAL STYLES --- */
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(15, 23, 42, 0.6); /* Slate-900 with opacity */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    backdrop-filter: blur(4px);
+    animation: fadeIn 0.2s ease-out;
+}
+
+.custom-modal {
+    background: white;
+    padding: 24px;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 420px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    animation: zoomIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.custom-modal h3 {
+    margin: 0 0 16px 0;
+    font-size: 1.25rem;
+    color: #1e293b;
+    font-weight: 700;
+}
+
+.modal-input {
+    width: 100%;
+    padding: 12px 14px;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 1rem;
+    color: #1e293b;
+    outline: none;
+    transition: border-color 0.2s;
+    margin-bottom: 24px;
+    box-sizing: border-box;
+}
+
+.modal-input:focus {
+    border-color: #4e73df;
+}
+
+.modal-text {
+    font-size: 1rem;
+    color: #475569;
+    margin-bottom: 24px;
+    line-height: 1.5;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.btn-cancel {
+    background: #f1f5f9;
+    color: #475569;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-cancel:hover {
+    background: #e2e8f0;
+}
+
+.btn-okay {
+    background: #4e73df;
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+}
+
+.btn-okay:hover {
+    background: #2e59d9;
+}
+
+.btn-okay:active {
+    transform: scale(0.98);
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes zoomIn {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
 }
