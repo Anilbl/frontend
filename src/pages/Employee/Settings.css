@@ -314,3 +314,4 @@ input:checked + .slider:before { transform: translateX(24px); }
 
 .status-msg.success { color: #16a34a; font-size: 0.9rem; margin-top: 0.5rem; }
 .status-msg.error { color: #dc2626; font-size: 0.9rem; margin-top: 0.5rem; }
+.input-group input { padding-right: 40px; }

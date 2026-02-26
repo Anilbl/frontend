@@ -1,89 +1,303 @@
+/* ── Base ── */
+.dashboard-content-wrapper {
+  padding: 2rem 2.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.fade-in {
+  animation: fadeIn 0.4s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Header ── */
 .analytics-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-end;
+  align-items: center;
   margin-bottom: 2.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 
-.month-select {
-  padding: 12px 18px;
-  border-radius: 12px;
+.header-text h1 {
+  font-size: 1.9rem;
+  font-weight: 800;
+  color: #1e293b;
+  letter-spacing: -0.5px;
+  margin-bottom: 4px;
+}
+
+.header-text p {
+  font-size: 0.9rem;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.employee-name-tag {
+  display: inline-block;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #4f46e5;
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  border-radius: 20px;
+  padding: 3px 12px;
+  margin-bottom: 4px;
+  letter-spacing: 0.3px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* ── Download Button ── */
+.download-btn {
+  padding: 11px 22px;
+  background: #4f46e5;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+.download-btn:hover {
+  background: #4338ca;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(79, 70, 229, 0.4);
+}
+
+.download-btn:disabled {
+  background: #c7d2fe;
+  box-shadow: none;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ── Year Selector ── */
+.year-selector {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #f1f5f9;
   border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 4px;
+}
+
+.year-btn {
+  padding: 7px 15px;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+}
+
+.year-btn:hover {
+  background: #e0e7ff;
+  color: #4f46e5;
+}
+
+.year-btn.active {
+  background: #4f46e5;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.35);
+}
+
+/* ── Month Select ── */
+.month-select {
+  padding: 11px 16px;
+  border-radius: 10px;
+  border: 1.5px solid #e2e8f0;
   font-weight: 600;
+  font-size: 0.875rem;
   cursor: pointer;
   background: white;
+  color: #1e293b;
+  font-family: inherit;
+  transition: border-color 0.2s ease;
+  outline: none;
 }
 
+.month-select:focus {
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+/* ── KPI Stats Row ── */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.status-kpi-card {
+  background: white;
+  border-radius: 16px;
+  padding: 1.4rem 1.6rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  border: 1px solid #f1f5f9;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.status-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.07);
+}
+
+.kpi-icon-container {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  flex-shrink: 0;
+}
+
+.kpi-data {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.kpi-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.kpi-value {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #1e293b;
+  letter-spacing: -0.3px;
+}
+
+/* ── Details Grid ── */
 .details-grid {
   display: grid;
   grid-template-columns: 1.5fr 1fr;
   gap: 1.5rem;
-  margin-top: 2rem;
+  margin-top: 0.5rem;
 }
 
+/* ── Glass Cards ── */
 .glass-card {
   background: white;
-  padding: 2rem;
-  border-radius: 20px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  padding: 1.8rem 2rem;
+  border-radius: 18px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   border: 1px solid #f1f5f9;
 }
 
-.month-select:focus {
-  outline: none;
-  border-color: #4f46e5;
-}
-.download-btn:hover {
-  background: #4338ca;
-  transition: background 0.2s ease;
-}
-
 .glass-card h3 {
-  font-size: 1.1rem;
+  font-size: 1rem;
+  font-weight: 700;
   color: #1e293b;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 12px;
   border-bottom: 1px solid #f1f5f9;
-  padding-bottom: 10px;
+  letter-spacing: -0.2px;
 }
 
+/* ── Financial Breakdown Rows ── */
 .data-row {
   display: flex;
   justify-content: space-between;
-  padding: 12px 0;
+  align-items: center;
+  padding: 11px 0;
+  font-size: 0.9rem;
   font-weight: 500;
+  color: #475569;
+  border-bottom: 1px solid #f8fafc;
 }
+
+.data-row:last-child { border-bottom: none; }
+.data-row.success span:last-child { color: #059669; font-weight: 700; }
+.data-row.danger  span:last-child { color: #ef4444; font-weight: 700; }
 
 .data-row.highlight {
-  margin-top: 1.5rem;
-  padding: 1.2rem;
-  background: #f8faff;
+  margin-top: 1rem;
+  padding: 1rem 1.2rem;
+  background: linear-gradient(135deg, #eef2ff, #f8faff);
   border-radius: 12px;
-  font-size: 1.2rem;
-  color: #4f46e5;
-  border: 1px solid #eef2ff;
-}
-
-.info-item { margin-bottom: 1.5rem; }
-.info-item label {
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  color: #64748b;
-  letter-spacing: 0.5px;
+  font-size: 1rem;
   font-weight: 700;
+  color: #1e293b;
+  border: 1px solid #e0e7ff;
 }
-.download-btn{
-  padding: 10px 16px;
-  background: #4f46e5;
-  color: white;
-  border: none;
-  border-radius: 8px;
+
+.data-row.highlight .primary {
+  color: #4f46e5;
+  font-size: 1.05rem;
+}
+
+/* ── Payment Info Card ── */
+.info-card .info-item { margin-bottom: 1.2rem; }
+.info-card .info-item:last-child { margin-bottom: 0; }
+
+.info-card label {
+  display: block;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  color: #94a3b8;
+  letter-spacing: 0.8px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.info-card p {
+  font-size: 0.9rem;
   font-weight: 600;
-  cursor: pointer;
+  color: #1e293b;
 }
 
-.mono { font-family: 'JetBrains Mono', monospace; }
+.badge-success {
+  display: inline-block;
+  padding: 4px 12px;
+  background: #f0fdf4;
+  color: #059669;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border: 1px solid #bbf7d0;
+  letter-spacing: 0.3px;
+}
 
-/* Empty State Card */
+/* ── Mono font ── */
+.mono {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.85em;
+}
+
+/* ── Empty / Loading / Error State ── */
 .empty-state-card {
   background: white;
   border-radius: 20px;
@@ -92,4 +306,35 @@
   border: 2px dashed #e2e8f0;
 }
 
-.empty-icon { font-size: 3.5rem; opacity: 0.3; margin-bottom: 1rem; }
+.empty-state-card h3 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #475569;
+  margin-bottom: 8px;
+}
+
+.empty-state-card p {
+  font-size: 0.9rem;
+  color: #94a3b8;
+}
+
+.empty-icon {
+  font-size: 3.5rem;
+  opacity: 0.3;
+  margin-bottom: 1rem;
+}
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .stats-row    { grid-template-columns: repeat(2, 1fr); }
+  .details-grid { grid-template-columns: 1fr; }
+  .analytics-header { flex-direction: column; align-items: flex-start; }
+}
+
+@media (max-width: 560px) {
+  .stats-row      { grid-template-columns: 1fr; }
+  .header-actions { flex-direction: column; align-items: flex-start; width: 100%; }
+  .year-selector  { width: 100%; justify-content: space-between; }
+  .month-select   { width: 100%; }
+  .download-btn   { width: 100%; }
+}

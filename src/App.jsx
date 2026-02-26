@@ -18,7 +18,7 @@ import AdminPayroll from "./pages/Admin/Payroll.jsx";
 import Salary from "./pages/Accountant/Salary.jsx";
 import Tax from "./pages/Accountant/Tax.jsx";
 import AccountantReport from "./pages/Accountant/Report.jsx";
-
+import DocumentReview from "./pages/Admin/DocumentReview.jsx";
 import AdminDashboard from "./pages/Admin/AdminDashboard.jsx";
 import Users from "./pages/Admin/users.jsx";
 import AddUser from "./pages/Admin/AddUser.jsx";
@@ -29,6 +29,7 @@ import Leave from "./pages/Admin/Leave.jsx";
 import Report from "./pages/Admin/Report.jsx";
 import SystemConfig from "./pages/Admin/SystemConfig/System-Config.jsx";
 import HolidaySettings from "./pages/Admin/Organization/HolidaySettings.jsx";
+import UserProfile from "./pages/Employee/UserProfile.jsx";
 
 import PayrollAdjustment from "./pages/Admin/PayrollAdjustment.jsx"; 
 import PayrollPreview from "./pages/Admin/PayrollPreview.jsx"; 
@@ -115,6 +116,7 @@ function App() {
             <Route path="attendance" element={<Attendance />} />
             <Route path="leave" element={<Leave />} />
             <Route path="holidays" element={<HolidaySettings />} />
+            <Route path="documents" element={<DocumentReview />} />
             
             <Route path="payroll">
               <Route index element={<AdminPayroll />} />
@@ -136,6 +138,7 @@ function App() {
             <Route path="leave" element={<LeaveManagement />} />
             <Route path="salary" element={<SalaryAnalytics />} />
             <Route path="settings" element={<Settings />} />
+            <Route path="profile" element={<UserProfile />} />
           </Route>
         </Route>
 

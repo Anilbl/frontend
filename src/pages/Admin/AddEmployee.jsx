@@ -11,7 +11,9 @@ const AddEmployee = () => {
 
   const [formData, setFormData] = useState({
     firstName: "", 
+    middleName: "", // NEW FIELD
     lastName: "", 
+    gender: "",     // NEW FIELD
     email: "", 
     contact: "", 
     address: "",
@@ -68,14 +70,13 @@ const AddEmployee = () => {
     loadInit();
   }, [id, isEditMode]);
 
-  // --- AUTOMATIC SALARY FETCHING LOGIC ---
   useEffect(() => {
     if (formData.positionId && positions.length > 0) {
       const selectedPos = positions.find(p => String(p.designationId) === String(formData.positionId));
       if (selectedPos) {
         setFormData(prev => ({
           ...prev,
-          basicSalary: selectedPos.baseSalary // Automatically sets the salary
+          basicSalary: selectedPos.baseSalary 
         }));
       }
     }
@@ -144,10 +145,27 @@ const AddEmployee = () => {
               <label>First Name</label>
               <input value={formData.firstName} onChange={(e)=>setFormData({...formData, firstName: e.target.value})} required disabled={!!successMsg}/>
             </div>
+
+            {/* NEW MIDDLE NAME FIELD */}
+            <div className="field-item">
+              <label>Middle Name (Optional)</label>
+              <input value={formData.middleName || ""} onChange={(e)=>setFormData({...formData, middleName: e.target.value})} disabled={!!successMsg}/>
+            </div>
             
             <div className="field-item">
               <label>Last Name</label>
               <input value={formData.lastName} onChange={(e)=>setFormData({...formData, lastName: e.target.value})} required disabled={!!successMsg}/>
+            </div>
+
+            {/* NEW GENDER FIELD */}
+            <div className="field-item">
+              <label>Gender</label>
+              <select value={formData.gender} onChange={(e)=>setFormData({...formData, gender: e.target.value})} required disabled={!!successMsg}>
+                <option value="">Select Gender...</option>
+                <option value="MALE">MALE</option>
+                <option value="FEMALE">FEMALE</option>
+                <option value="OTHER">OTHER</option>
+              </select>
             </div>
 
             <div className="field-item">

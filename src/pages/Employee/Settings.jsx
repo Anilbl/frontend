@@ -3,6 +3,22 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import "./Settings.css";
 
+// MOVED: icons defined before component
+const EyeIcon = () => (
+  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+    <circle cx="12" cy="12" r="3" />
+  </svg>
+);
+
+const EyeOffIcon = () => (
+  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+    <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+    <line x1="1" y1="1" x2="23" y2="23" />
+  </svg>
+);
+
 const Settings = () => {
   const navigate = useNavigate();
   const [isNotificationsEnabled, setNotifications] = useState(false);
@@ -13,6 +29,8 @@ const Settings = () => {
   const [photoPreview, setPhotoPreview] = useState(null);
   const [photoFile, setPhotoFile] = useState(null);
   const [photoUploading, setPhotoUploading] = useState(false);
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
 
   const session = JSON.parse(localStorage.getItem("user_session") || "{}");
   const token = session.jwt || session.token;
@@ -84,13 +102,26 @@ const Settings = () => {
         { currentPassword: passwordData.currentPassword, newPassword: passwordData.newPassword },
         { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
       );
-      setMessage({ type: "success", text: "Password updated successfully!" });
+      setMessage({ type: "success", text: "✅ Password updated successfully!" });
       setPasswordData({ currentPassword: "", newPassword: "" });
-      setTimeout(() => { setShowPasswordModal(false); setMessage({ type: "", text: "" }); }, 2000);
+      setShowCurrent(false);
+      setShowNew(false);
+      setTimeout(() => {
+        setShowPasswordModal(false);
+        setMessage({ type: "", text: "" });
+      }, 2000);
     } catch (err) {
       const errorMsg = err.response?.data?.message || "Invalid credentials";
       setMessage({ type: "error", text: `Failed to update: ${errorMsg}` });
     }
+  };
+
+  const closePasswordModal = () => {
+    setShowPasswordModal(false);
+    setMessage({ type: "", text: "" });
+    setPasswordData({ currentPassword: "", newPassword: "" });
+    setShowCurrent(false);
+    setShowNew(false);
   };
 
   return (
@@ -104,7 +135,6 @@ const Settings = () => {
         {/* Profile Card */}
         <div className="settings-card profile-card">
           <div className="profile-header">
-            {/* Photo */}
             <div className="avatar-wrapper">
               {photoPreview
                 ? <img src={photoPreview} alt="Profile" className="avatar-photo" />
@@ -126,7 +156,6 @@ const Settings = () => {
             <p className="role-tag">{session.role?.roleName || "Staff"}</p>
           </div>
 
-          {/* Employee Details */}
           {employeeData && (
             <div className="info-list">
               <div className="info-item"><label>USER ID</label><span>{session.userId}</span></div>
@@ -173,26 +202,75 @@ const Settings = () => {
         </div>
       </div>
 
+      {/* Password Modal */}
       {showPasswordModal && (
         <div className="modal-overlay">
           <div className="settings-card password-modal">
             <h3>Update Password</h3>
             <form onSubmit={handlePasswordUpdate}>
+
               <div className="input-group">
-                <label>Current Password</label>
-                <input type="password" required value={passwordData.currentPassword}
-                  onChange={(e) => setPasswordData({...passwordData, currentPassword: e.target.value})} />
+                <label>CURRENT PASSWORD</label>
+                <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                  <input
+                    type={showCurrent ? "text" : "password"}
+                    required
+                    value={passwordData.currentPassword}
+                    onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                    style={{ width: "100%", paddingRight: "2.5rem" }}  // FIXED: full width
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrent(v => !v)}
+                    tabIndex={-1}
+                    style={{ position: "absolute", right: 10, background: "none", border: "none", cursor: "pointer", color: "#94A3B8" }}
+                  >
+                    {showCurrent ? <EyeOffIcon /> : <EyeIcon />}
+                  </button>
+                </div>
               </div>
+
               <div className="input-group">
-                <label>New Password</label>
-                <input type="password" required value={passwordData.newPassword}
-                  onChange={(e) => setPasswordData({...passwordData, newPassword: e.target.value})} />
+                <label>NEW PASSWORD</label>
+                <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                  <input
+                    type={showNew ? "text" : "password"}
+                    required
+                    value={passwordData.newPassword}
+                    onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                    style={{ width: "100%", paddingRight: "2.5rem" }}  // FIXED: full width
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNew(v => !v)}
+                    tabIndex={-1}
+                    style={{ position: "absolute", right: 10, background: "none", border: "none", cursor: "pointer", color: "#94A3B8" }}
+                  >
+                    {showNew ? <EyeOffIcon /> : <EyeIcon />}
+                  </button>
+                </div>
               </div>
+
+              {/* FIXED: better error/success message styling */}
               {message.text && (
-                <p className={`status-msg ${message.type === "success" ? "success" : "error"}`}>{message.text}</p>
+                <div style={{
+                  padding: "0.75rem 1rem",
+                  borderRadius: "0.5rem",
+                  marginBottom: "1rem",
+                  fontSize: "0.875rem",
+                  fontWeight: 500,
+                  background: message.type === "success" ? "#dcfce7" : "#fef2f2",
+                  color: message.type === "success" ? "#166534" : "#991b1b",
+                  border: `1px solid ${message.type === "success" ? "#bbf7d0" : "#fecaca"}`
+                }}>
+                  {message.text}
+                </div>
               )}
+
               <div className="modal-actions">
-                <button type="button" className="btn-text" onClick={() => { setShowPasswordModal(false); setMessage({ type: "", text: "" }); }}>Cancel</button>
+                <button type="button" className="btn-text" onClick={closePasswordModal}>
+                  Cancel
+                </button>
                 <button type="submit" className="btn-primary">Save Changes</button>
               </div>
             </form>

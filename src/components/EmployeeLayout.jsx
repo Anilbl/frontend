@@ -41,7 +41,9 @@ const EmployeeLayout = () => {
     { path: "attendance", label: "Attendance", icon: "🕒" },
     { path: "leave", label: "Leave Requests", icon: "📝" },
     { path: "salary", label: "Salary Info", icon: "💰" },
+    { path: "profile", label: "My Profile", icon: "👤" },
     { path: "settings", label: "Profile Settings", icon: "⚙️" }
+
   ];
 
   return (

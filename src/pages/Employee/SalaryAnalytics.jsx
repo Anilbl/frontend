@@ -9,9 +9,11 @@ const SalaryAnalytics = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState("");
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
   const months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
   const currentYear = new Date().getFullYear();
+  const yearOptions = Array.from({ length: 4 }, (_, i) => currentYear - 3 + i);
 
   useEffect(() => {
     if (!selectedMonth) return;
@@ -22,9 +24,9 @@ const SalaryAnalytics = () => {
         const sessionData = localStorage.getItem("user_session");
         if (!sessionData) { window.location.href = "/login"; return; }
         const parsed = JSON.parse(sessionData);
-        
+
         const monthIndex = months.indexOf(selectedMonth) + 1;
-        const formattedMonth = `${currentYear}-${monthIndex.toString().padStart(2, "0")}`;
+        const formattedMonth = `${selectedYear}-${monthIndex.toString().padStart(2, "0")}`;
 
         const response = await api.get("/salary-analytics/me", {
           params: { month: formattedMonth },
@@ -57,140 +59,147 @@ const SalaryAnalytics = () => {
       } finally { setLoading(false); }
     };
     fetchSalary();
-  }, [selectedMonth]);
+  }, [selectedMonth, selectedYear]);
 
   const handleDownloadPDF = () => {
-  if (!salaryData) return;
+    if (!salaryData) return;
+    try {
+      const doc = new jsPDF();
+      const primaryColor = [0, 68, 170];
+      const pageWidth = doc.internal.pageSize.getWidth();
 
-  try {
-    const doc = new jsPDF();
-    const primaryColor = [0, 68, 170];
-    const lightGray = [245, 247, 250];
-    const pageWidth = doc.internal.pageSize.getWidth();
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(22);
+      doc.setTextColor(...primaryColor);
+      doc.text("NAST COLLEGE", 20, 25);
 
-    /* HEADER */
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(22);
-    doc.setTextColor(...primaryColor);
-    doc.text("NAST COLLEGE", 20, 25);
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(100);
+      doc.text("Dhangadhi, Nepal | contact@nast.edu.np", 20, 32);
+      doc.text(`Pay Period: ${selectedMonth} ${selectedYear}`, 20, 37);
 
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(100);
-    doc.text("Dhangadhi, Nepal | contact@nast.edu.np", 20, 32);
-    doc.text(`Pay Period: ${selectedMonth} ${currentYear}`, 20, 37);
+      doc.setDrawColor(...primaryColor);
+      doc.line(20, 45, pageWidth - 20, 45);
 
-    doc.setDrawColor(...primaryColor);
-    doc.line(20, 45, pageWidth - 20, 45);
+      doc.setFontSize(16);
+      doc.setTextColor(0);
+      doc.text("SALARY SLIP", pageWidth / 2, 55, { align: "center" });
 
-    /* TITLE */
-    doc.setFontSize(16);
-    doc.setTextColor(0);
-    doc.text("SALARY SLIP", pageWidth / 2, 55, { align: "center" });
+      doc.setFontSize(10);
+      doc.text(`Date: ${new Date().toLocaleDateString()}`, pageWidth - 60, 65);
 
-    doc.setFontSize(10);
-    doc.text(`Date: ${new Date().toLocaleDateString()}`, pageWidth - 60, 65);
+      doc.setFont("helvetica", "bold");
+      doc.text("Employee Name:", 25, 85);
+      doc.text("Designation:", 25, 92);
+      doc.text("Employment Status:", 25, 99);
+      doc.text("Bank Name:", pageWidth / 2, 92);
+      doc.text("Bank Account:", pageWidth / 2, 99);
 
-    /* EMPLOYEE INFO */
-    doc.text("Employee Name:", 25, 85);
-doc.text("Designation:", 25, 92);
-    doc.text("Employment Status:", 25, 99);
-doc.text("Bank Name:", pageWidth / 2, 92);
-doc.text("Bank Account:", pageWidth / 2, 99);
+      doc.setFont("helvetica", "normal");
+      doc.text(salaryData.employeeName || "-", 70, 85);
+      doc.text(salaryData.designation || "-", 70, 92);
+      doc.text(salaryData.employmentStatus || "-", 70, 99);
+      doc.text(salaryData.bankName || "-", pageWidth / 2 + 45, 92);
+      doc.text(salaryData.bankAccount || "-", pageWidth / 2 + 45, 99);
 
-doc.setFont("helvetica", "normal");
-doc.text(salaryData.employeeName || "-", 70, 85);
-doc.text(salaryData.designation || "-", 70, 92);
-doc.text(salaryData.employmentStatus || "-", 70, 99);
-doc.text(salaryData.bankName || "-", pageWidth / 2 + 45, 92);
-doc.text(salaryData.bankAccount || "-", pageWidth / 2 + 45, 99);
+      autoTable(doc, {
+        startY: 120,
+        head: [["EARNINGS", "Amount (Rs.)", "DEDUCTIONS", "Amount (Rs.)"]],
+        body: [
+          ["Basic Salary", salaryData.baseSalary.toLocaleString(), "Taxable Amount", salaryData.taxableAmount.toLocaleString()],
+          ["Allowances", salaryData.totalAllowances.toLocaleString(), "Total Deductions", salaryData.totalDeductions.toLocaleString()],
+          ["Gross Salary", salaryData.grossSalary.toLocaleString(), "", ""],
+        ],
+        theme: "grid",
+        headStyles: { fillColor: primaryColor, textColor: 255 },
+      });
 
-    /* TABLE */
-  autoTable(doc, {
-  startY: 120,
-  head: [["EARNINGS", "Amount (Rs.)", "DEDUCTIONS", "Amount (Rs.)"]],
-  body: [
-    [
-      "Basic Salary",
-      salaryData.baseSalary.toLocaleString(),
-      "Taxable Amount",
-      salaryData.taxableAmount.toLocaleString(),
-    ],
-    [
-      "Allowances",
-      salaryData.totalAllowances.toLocaleString(),
-      "Total Deductions",
-      salaryData.totalDeductions.toLocaleString(),
-    ],
-    [
-      "Gross Salary",
-      salaryData.grossSalary.toLocaleString(),
-      "",
-      "",
-    ],
-  ],
-  theme: "grid",
-  headStyles: {
-    fillColor: primaryColor,
-    textColor: 255,
-  },
-});
+      const finalY = doc.lastAutoTable.finalY + 10;
 
-    /* SUMMARY */
-    const finalY = doc.lastAutoTable.finalY + 10;
+      doc.setFont("helvetica", "bold");
+      doc.text(`Gross Earnings: Rs. ${salaryData.grossSalary.toLocaleString()}`, 20, finalY);
 
-    doc.setFont("helvetica", "bold");
-   doc.text(
-  `Gross Earnings: Rs. ${salaryData.grossSalary.toLocaleString()}`,
-  20,
-  finalY
-);
+      doc.setFillColor(220, 235, 255);
+      doc.roundedRect(20, finalY + 10, pageWidth - 40, 20, 3, 3, "F");
 
-    doc.setFillColor(220, 235, 255);
-    doc.roundedRect(20, finalY + 10, pageWidth - 40, 20, 3, 3, "F");
+      doc.setFontSize(14);
+      doc.setTextColor(...primaryColor);
+      doc.text(
+        `TOTAL NET DISBURSEMENT: NPR ${salaryData.netSalary.toLocaleString()}`,
+        pageWidth / 2,
+        finalY + 23,
+        { align: "center" }
+      );
 
-    doc.setFontSize(14);
-    doc.setTextColor(...primaryColor);
-    doc.text(
-      `TOTAL NET DISBURSEMENT: NPR ${salaryData.netSalary.toLocaleString()}`,
-      pageWidth / 2,
-      finalY + 23,
-      { align: "center" }
-    );
-
-    doc.save(
-      `Payslip_${salaryData.employeeName}_${selectedMonth}_${currentYear}.pdf`
-    );
-
-  } catch (err) {
-    console.error("PDF generation failed:", err);
-  }
-};
+      doc.save(`Payslip_${salaryData.employeeName}_${selectedMonth}_${selectedYear}.pdf`);
+    } catch (err) {
+      console.error("PDF generation failed:", err);
+    }
+  };
 
   return (
     <div className="dashboard-content-wrapper fade-in">
       <header className="analytics-header">
         <div className="header-text">
           <h1>Salary Analytics</h1>
-          <p>Overview for {selectedMonth || "..."} {currentYear}</p>
+          {salaryData && (
+            <p className="employee-name-tag">👤 {salaryData.employeeName}</p>
+          )}
+          <p>Overview for {selectedMonth || "..."} {selectedYear}</p>
         </div>
 
         <div className="header-actions">
           <button className="download-btn" onClick={handleDownloadPDF} disabled={!salaryData}>
-             Download PDF
+            Download PDF
           </button>
-          
+
+          {/* Year Selector */}
+          <div className="year-selector">
+            {yearOptions.map((year) => (
+              <button
+                key={year}
+                className={`year-btn${selectedYear === year ? " active" : ""}`}
+                onClick={() => {
+                  setSelectedYear(year);
+                  setSalaryData(null);
+                  setError(null);
+                }}
+              >
+                {year}
+              </button>
+            ))}
+          </div>
+
+          {/* Month Selector */}
           <select className="month-select" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}>
             <option value="">Select Month</option>
             {months.map((m) => (<option key={m} value={m}>{m}</option>))}
           </select>
-          
         </div>
       </header>
 
-      {salaryData ? (
+      {/* Loading */}
+      {loading && (
+        <div className="empty-state-card">
+          <div className="empty-icon">⏳</div>
+          <h3>Loading...</h3>
+          <p>Fetching salary data for {selectedMonth} {selectedYear}</p>
+        </div>
+      )}
+
+      {/* Error */}
+      {error && !loading && (
+        <div className="empty-state-card">
+          <div className="empty-icon">⚠️</div>
+          <h3>No Data Found</h3>
+          <p>{error}</p>
+        </div>
+      )}
+
+      {/* Data */}
+      {salaryData && !loading && (
         <>
-          {/* Unified KPI Row */}
           <div className="stats-row">
             <StatCard label="Net Disbursement" value={`Rs. ${salaryData.netSalary.toLocaleString()}`} icon="💰" color="#4f46e5" />
             <StatCard label="Total Allowances" value={`Rs. ${salaryData.totalAllowances.toLocaleString()}`} icon="🎁" color="#059669" />
@@ -198,7 +207,6 @@ doc.text(salaryData.bankAccount || "-", pageWidth / 2 + 45, 99);
           </div>
 
           <div className="details-grid">
-            {/* Professional Breakdown Card */}
             <div className="glass-card breakdown-card">
               <h3>Financial Breakdown</h3>
               <div className="data-row"><span>Base Salary</span><span className="mono">Rs. {salaryData.baseSalary.toLocaleString()}</span></div>
@@ -208,7 +216,6 @@ doc.text(salaryData.bankAccount || "-", pageWidth / 2 + 45, 99);
               <div className="data-row highlight"><span>Net Salary</span><span className="primary mono">Rs. {salaryData.netSalary.toLocaleString()}</span></div>
             </div>
 
-            {/* Employee Info Card */}
             <div className="glass-card info-card">
               <h3>Payment Information</h3>
               <div className="info-item"><label>Account Holder</label><p>{salaryData.employeeName}</p></div>
@@ -218,18 +225,20 @@ doc.text(salaryData.bankAccount || "-", pageWidth / 2 + 45, 99);
             </div>
           </div>
         </>
-      ) : (
+      )}
+
+      {/* Empty state */}
+      {!salaryData && !loading && !error && (
         <div className="empty-state-card">
-            <div className="empty-icon">📂</div>
-            <h3>No Month Selected</h3>
-            <p>Select a month from the dropdown above to view your detailed analytics.</p>
+          <div className="empty-icon">📂</div>
+          <h3>No Month Selected</h3>
+          <p>Select a year and month above to view your detailed analytics.</p>
         </div>
       )}
     </div>
   );
 };
 
-/* Reusable Stat Card to match Dashboard */
 const StatCard = ({ label, value, icon, color }) => (
   <div className="status-kpi-card">
     <div className="kpi-icon-container" style={{ color, backgroundColor: `${color}15` }}>{icon}</div>

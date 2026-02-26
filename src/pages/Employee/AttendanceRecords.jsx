@@ -1,43 +1,66 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { getProfileByUserId } from "../../api/employeeApi";
 import "./AttendanceRecord.css";
 
 const AttendanceRecords = () => {
-    // Session and Identity State
     const session = JSON.parse(localStorage.getItem("user_session") || "{}");
     
-    // Identity State
     const [employeeId, setEmployeeId] = useState(session.empId || null);
     const [fullName, setFullName] = useState("");
     
-    // UI and Logic State
     const [status, setStatus] = useState("Not Checked In");
     const [loading, setLoading] = useState(false);
     const [history, setHistory] = useState([]);
     const [liveLocation, setLiveLocation] = useState({ lat: null, lon: null });
     const [liveDistance, setLiveDistance] = useState(null);
     const [showSuccess, setShowSuccess] = useState(false);
-    const [backendError, setBackendError] = useState(""); // New state for error banner
+    const [backendError, setBackendError] = useState(""); 
     const [canCheckIn, setCanCheckIn] = useState(true);
     const [canCheckOut, setCanCheckOut] = useState(false); 
+    const [isOnLeave, setIsOnLeave] = useState(false); // NEW: Leave state
     const [countdown, setCountdown] = useState(""); 
     const [currentTime, setCurrentTime] = useState(new Date()); 
 
-    // Pagination State
     const [currentPage, setCurrentPage] = useState(1);
     const recordsPerPage = 10;
 
-    // Constants
     const OFFICE_LAT = 28.8475; 
     const OFFICE_LON = 80.3160; 
     const ALLOWED_RADIUS_METERS = 300000; 
     const API_URL = "http://localhost:8080/api/attendance";
+    const LEAVE_API_URL = "http://localhost:8080/api/employee-leaves"; // Ensure this is correct
 
     const getAuthHeader = useCallback(() => {
         const token = session.jwt || session.token; 
         return token ? { Authorization: `Bearer ${token}` } : {};
     }, [session.jwt, session.token]);
+
+    // NEW: Function to check if employee is currently on leave
+    const checkLeaveStatus = useCallback(async (id) => {
+        try {
+            const headers = getAuthHeader();
+            const res = await axios.get(LEAVE_API_URL, { headers });
+            const today = new Date().toISOString().split('T')[0];
+            
+            // Check if any APPROVED leave record covers TODAY
+            const activeLeave = res.data.find(leave => 
+                leave.employee?.empId === id &&
+                leave.status === "Approved" &&
+                today >= leave.startDate &&
+                today <= leave.endDate
+            );
+
+            if (activeLeave) {
+                setIsOnLeave(true);
+                setCanCheckIn(false);
+                setStatus("ON LEAVE");
+                setBackendError("You are currently on leave. Check-in is disabled.");
+            }
+        } catch (err) {
+            console.error("Error checking leave status", err);
+        }
+    }, [getAuthHeader]);
 
     const fetchAttendance = useCallback(async (targetId) => {
         const idToUse = targetId || employeeId;
@@ -46,14 +69,19 @@ const AttendanceRecords = () => {
         try {
             const headers = getAuthHeader();
             const res = await axios.get(`${API_URL}/employee/${idToUse}`, { headers });
-            
-            // Logic: Sort by latest check-in time descending
             const sorted = res.data.sort((a, b) => new Date(b.checkInTime) - new Date(a.checkInTime));
             setHistory(sorted);
             
             const now = new Date();
             const latestRec = sorted[0]; 
             
+            // Priority 1: Check if On Leave (Overwrites other statuses)
+            if (isOnLeave) {
+                setStatus("ON LEAVE");
+                setCanCheckIn(false);
+                return;
+            }
+
             if (latestRec) {
                 const lastCheckIn = new Date(latestRec.checkInTime);
                 const diffMs = now - lastCheckIn;
@@ -68,7 +96,6 @@ const AttendanceRecords = () => {
                         setCanCheckIn(false);
                         setCanCheckOut(false);
                         setStatus("10H RULE COOLING DOWN");
-                        
                         const remainingMs = (10 * 60 * 60 * 1000) - diffMs;
                         const h = Math.floor(remainingMs / 3600000);
                         const m = Math.floor((remainingMs % 3600000) / 60000);
@@ -88,7 +115,7 @@ const AttendanceRecords = () => {
         } catch (err) {
             setBackendError("Failed to sync attendance history.");
         }
-    }, [employeeId, getAuthHeader]);
+    }, [employeeId, getAuthHeader, isOnLeave]);
 
     const fetchEmployeeDetails = useCallback(async () => {
         const userId = session.userId; 
@@ -98,16 +125,20 @@ const AttendanceRecords = () => {
             setLoading(true);
             const res = await getProfileByUserId(userId);
             if (res.data) {
+                const empId = res.data.empId;
                 setFullName(`${res.data.firstName} ${res.data.lastName}`);
-                setEmployeeId(res.data.empId); 
-                fetchAttendance(res.data.empId);
+                setEmployeeId(empId); 
+                
+                // Chain the checks
+                await checkLeaveStatus(empId);
+                await fetchAttendance(empId);
             }
         } catch (err) {
-            setBackendError(err.response?.data?.message || "Identity verification failed.");
+            setBackendError("Identity verification failed.");
         } finally {
             setLoading(false);
         }
-    }, [session.userId, fetchAttendance]);
+    }, [session.userId, fetchAttendance, checkLeaveStatus]);
 
     useEffect(() => {
         fetchEmployeeDetails();
@@ -134,6 +165,7 @@ const AttendanceRecords = () => {
 
     const handleAttendance = async (type) => {
         setBackendError("");
+        if (isOnLeave) return setBackendError("Action Denied: You are currently on an approved leave.");
         if (!employeeId) return setBackendError("System syncing. Please wait.");
         if (parseFloat(liveDistance) > ALLOWED_RADIUS_METERS) {
             return setBackendError("Access Denied: You are outside the allowed radius.");
@@ -174,7 +206,6 @@ const AttendanceRecords = () => {
 
     return (
         <div className="attendance-portal">
-            {/* Professional Backend Error Banner */}
             {backendError && (
                 <div className="error-banner">
                     <span className="error-icon">⚠️</span>
@@ -192,13 +223,14 @@ const AttendanceRecords = () => {
             </header>
 
             <main className="portal-grid">
-                {/* Left Card: Status */}
                 <section className="portal-card status-card">
                     <h3>Current Status</h3>
                     <div className={`status-pill ${status.toLowerCase().replace(/\s/g, '-')}`}>
                         {status}
                     </div>
+                    {isOnLeave && <p className="leave-notice">🏖 Leave is active today.</p>}
                     {countdown && <div className="countdown-timer">Available in: {countdown}</div>}
+                    
                     <div className="geofence-box">
                          <div className="gps-header">
                             <span className="gps-dot active"></span>
@@ -207,18 +239,17 @@ const AttendanceRecords = () => {
                          <h2 className={parseFloat(liveDistance) <= ALLOWED_RADIUS_METERS ? "safe" : "danger"}>
                             {liveDistance ? `${liveDistance}m` : "Locating..."}
                          </h2>
-                         <small>{parseFloat(liveDistance) <= ALLOWED_RADIUS_METERS ? "✓ Inside Office Perimeter" : "⚠ Outside Office Perimeter"}</small>
+                         <small>{parseFloat(liveDistance) <= ALLOWED_RADIUS_METERS ? "✓ Inside Perimeter" : "⚠ Outside Perimeter"}</small>
                     </div>
                 </section>
 
-                {/* Middle Card: Actions */}
                 <section className="portal-card action-card">
                     <h3>Quick Actions</h3>
                     <div className="action-buttons-container">
                         <button 
                             className="btn-pro btn-checkin" 
                             onClick={() => handleAttendance("in")} 
-                            disabled={loading || !canCheckIn || !employeeId}
+                            disabled={loading || !canCheckIn || !employeeId || isOnLeave}
                         >
                             <div className="btn-content">
                                 <span className="icon">登</span>
@@ -237,17 +268,13 @@ const AttendanceRecords = () => {
                             </div>
                         </button>
                     </div>
-                    {!canCheckOut && status === "Checked In" && (
-                        <p className="lock-notice">🔒 Checkout available 8h after check-in.</p>
-                    )}
+                    {isOnLeave && <p className="lock-notice">⚠️ Actions disabled while on leave.</p>}
                 </section>
             </main>
 
-            {/* Bottom Section: Full Width Attendance Log */}
             <section className="portal-card log-section">
                 <div className="log-header">
                     <h3>Monthly Attendance Logs</h3>
-                    <div className="filter-info">Showing {recordsPerPage} records per page</div>
                 </div>
                 
                 <div className="table-responsive">
@@ -257,61 +284,22 @@ const AttendanceRecords = () => {
                                 <th>Date</th>
                                 <th>Check In</th>
                                 <th>Check Out</th>
-                                <th>Location (In)</th>
                                 <th>Status</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {currentRecords.length > 0 ? currentRecords.map(row => (
+                            {currentRecords.map(row => (
                                 <tr key={row.attendanceId}>
                                     <td><strong>{row.attendanceDate}</strong></td>
-                                    <td>{row.checkInTime ? new Date(row.checkInTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'}) : "--:--"}</td>
-                                    <td>{row.checkOutTime ? new Date(row.checkOutTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'}) : <span className="active-badge">On Shift</span>}</td>
-                                    <td>
-  <small className="gps-coords">
-    {row.inGpsLat != null && row.inGpsLong != null
-      ? `${Number(row.inGpsLat).toFixed(4)}, ${Number(row.inGpsLong).toFixed(4)}`
-      : "--"}
-  </small>
-</td>
+                                    <td>{row.checkInTime ? new Date(row.checkInTime).toLocaleTimeString() : "--"}</td>
+                                    <td>{row.checkOutTime ? new Date(row.checkOutTime).toLocaleTimeString() : <span className="active-badge">On Shift</span>}</td>
                                     <td><span className={`tag-status status-${row.status?.toLowerCase()}`}>{row.status}</span></td>
                                 </tr>
-                            )) : <tr><td colSpan="5" className="no-data">No attendance records found for this month.</td></tr>}
+                            ))}
                         </tbody>
                     </table>
                 </div>
-
-                {/* Pagination UI */}
-                {totalPages > 1 && (
-                    <div className="pagination">
-                        <button 
-                            disabled={currentPage === 1} 
-                            onClick={() => setCurrentPage(p => p - 1)}
-                            className="page-btn"
-                        >Previous</button>
-                        
-                        <div className="page-numbers">
-                            {Array.from({ length: totalPages }, (_, i) => (
-                                <button 
-                                    key={i + 1}
-                                    onClick={() => setCurrentPage(i + 1)}
-                                    className={`page-num ${currentPage === i + 1 ? 'active' : ''}`}
-                                >{i + 1}</button>
-                            ))}
-                        </div>
-
-                        <button 
-                            disabled={currentPage === totalPages} 
-                            onClick={() => setCurrentPage(p => p + 1)}
-                            className="page-btn"
-                        >Next</button>
-                    </div>
-                )}
             </section>
-
-            <footer className="portal-footer">
-                <small>System Security: Encrypted • User ID: <span className="id-badge">{employeeId || "Syncing..."}</span></small>
-            </footer>
         </div>
     );
 };

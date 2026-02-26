@@ -64,6 +64,7 @@ const AdminLayout = () => {
     { path: "leave", label: "Leave Requests", icon: "📝" },
     { path: "holidays", label: "Holidays", icon: "🏮" },
     { path: "payroll", label: "Payroll", icon: "💰" },
+    {path : "documents", label: "Document Verification", icon: "📄" },
     { path: "system-config", label: "System Config", icon: "⚙️" },
     { path: "report", label: "Reports", icon: "📊" }
   ];

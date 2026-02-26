@@ -21,9 +21,6 @@ export default function Employees() {
   const fetchEmployees = async () => {
     try {
       const res = await getEmployees();
-      console.log("API Response:", res.data); // DEBUG: Check this in your browser console
-
-      // Some APIs return the list in res.data, others in res.data.content (if paginated)
       const data = Array.isArray(res.data) ? res.data : (res.data?.content || []);
       setEmployees(data);
     } catch (err) { 
@@ -44,8 +41,9 @@ export default function Employees() {
 
   const filtered = employees.filter(emp => {
     const firstName = emp.firstName || "";
+    const middleName = emp.middleName ? emp.middleName + " " : "";
     const lastName = emp.lastName || "";
-    const fullName = `${firstName} ${lastName}`.toLowerCase();
+    const fullName = `${firstName} ${middleName}${lastName}`.toLowerCase();
     const idStr = (emp.empId || emp.id || "").toString();
     return fullName.includes(searchTerm.toLowerCase()) || idStr.includes(searchTerm.toLowerCase());
   }).sort((a, b) => (b.empId || b.id) - (a.empId || a.id));
@@ -88,10 +86,18 @@ export default function Employees() {
           ) : (
             currentData.map(emp => {
               const id = emp.empId || emp.id;
+              
+              // Correctly extract bank details from the array
+              const primaryBank = Array.isArray(emp.bankAccount) ? emp.bankAccount[0] : emp.bankAccount;
+              const bankName = primaryBank?.bank?.bankName || "Not Linked";
+              const accountNo = primaryBank?.accountNumber || "N/A";
+
               return (
                 <div key={id} className="emp-row-group">
                   <div className="emp-row-main">
-                    <span className="emp-bold">#{id} {emp.firstName} {emp.lastName}</span>
+                    <span className="emp-bold">
+                        #{id} {emp.firstName} {emp.middleName ? emp.middleName + " " : ""}{emp.lastName}
+                    </span>
                     <span className="emp-muted">{emp.email}</span>
                     <span>{emp.department?.deptName || "N/A"}</span>
                     <span>
@@ -114,9 +120,12 @@ export default function Employees() {
                         <span><strong>Position:</strong> {emp.position?.designationTitle || "N/A"}</span>
                         <span><strong>Basic Salary:</strong> {emp.basicSalary?.toLocaleString() || "0"}</span>
                         
-                        {/* Bank Details section */}
-                        <span><strong>Bank:</strong> {emp.bankAccount?.bank?.bankName || "Not Linked"}</span>
-                        <span><strong>A/C No:</strong> {emp.bankAccount?.accountNumber || "N/A"}</span>
+                        {/* Corrected Bank Details section */}
+                        <span><strong>Bank:</strong> {bankName}</span>
+                        <span><strong>A/C No:</strong> {accountNo}</span>
+                        
+                        {/* Marital Status (Added for completeness) */}
+                        <span><strong>Marital Status:</strong> {emp.maritalStatus || "N/A"}</span>
 
                         <div className="emp-tray-actions">
                           <button className="emp-action-edit" onClick={() => navigate(`/admin/employees/edit/${id}`)}>✎ Edit</button>
