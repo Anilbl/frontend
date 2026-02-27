@@ -7,44 +7,46 @@ const PayrollAdjustment = () => {
     const navigate = useNavigate();
     const location = useLocation();
     
-    // Determine role based on URL path
     const isAdmin = useMemo(() => location.pathname.includes("/admin"), [location.pathname]);
 
-    // 1. Recover state: Priority 1: Navigation state | Priority 2: Session Storage
     const [payrollContext, setPayrollContext] = useState(() => {
         if (location.state?.employee) return location.state;
         const saved = sessionStorage.getItem("active_payroll_adjustment");
         return saved ? JSON.parse(saved) : null;
     });
 
-    // 2. Local States
-    const [dbComponents, setDbComponents] = useState([]);
-    const [selectedComponents, setSelectedComponents] = useState(payrollContext?.persistedAdjustments || []);
+    // --- NEW: Added state for Earned Salary to make it editable here too ---
+    const [earnedSalary, setEarnedSalary] = useState(payrollContext?.initialInputs?.earnedSalary ?? 0);
     const [festivalBonus, setFestivalBonus] = useState(payrollContext?.initialInputs?.festivalBonus ?? 0);
     const [otherBonus, setOtherBonus] = useState(payrollContext?.initialInputs?.bonuses ?? 0);
     const [citContribution, setCitContribution] = useState(payrollContext?.initialInputs?.citContribution ?? 0);
 
+    const [dbComponents, setDbComponents] = useState([]);
+    const [selectedComponents, setSelectedComponents] = useState(payrollContext?.persistedAdjustments || []);
     const [newCompId, setNewCompId] = useState("");
     const [tempAmount, setTempAmount] = useState("");
     const [tempType, setTempType] = useState("EARNING");
 
-    const getPayrollHomePath = () => {
-        return isAdmin ? "/admin/payroll" : "/accountant/payroll-processing";
-    };
+    const getPayrollHomePath = () => isAdmin ? "/admin/payroll" : "/accountant/payroll-processing";
 
-    // 3. Persist progress
+    // --- UPDATED: Persist progress including the manual salary ---
     useEffect(() => {
         if (payrollContext?.employee) {
             const stateToSave = {
                 ...payrollContext,
-                initialInputs: { festivalBonus, bonuses: otherBonus, citContribution },
+                initialInputs: { 
+                    ...payrollContext.initialInputs,
+                    earnedSalary, // Save the manual edit
+                    festivalBonus, 
+                    bonuses: otherBonus, 
+                    citContribution 
+                },
                 persistedAdjustments: selectedComponents
             };
             sessionStorage.setItem("active_payroll_adjustment", JSON.stringify(stateToSave));
         }
-    }, [festivalBonus, otherBonus, citContribution, selectedComponents, payrollContext]);
+    }, [earnedSalary, festivalBonus, otherBonus, citContribution, selectedComponents, payrollContext]);
 
-    // Fetch Components
     useEffect(() => {
         api.get("/salary-components")
             .then((res) => {
@@ -80,12 +82,15 @@ const PayrollAdjustment = () => {
         }
     };
 
+    // --- CRITICAL FIX: Sending ALL data (including earnedSalary) to Backend ---
     const handleProceed = async () => {
         try {
             const payload = {
                 empId: payrollContext.employee.empId,
                 year: payrollContext.year,
                 month: payrollContext.month,
+                // These are the values the backend needs for the final calculation
+                earnedSalary: parseFloat(earnedSalary || 0), 
                 festivalBonus: parseFloat(festivalBonus || 0),
                 bonuses: parseFloat(otherBonus || 0),
                 citContribution: parseFloat(citContribution || 0),
@@ -126,12 +131,22 @@ const PayrollAdjustment = () => {
                 <header className="adj-header">
                     <div className="adj-title-box">
                         <h1>Payroll Adjustment</h1>
-                        <p>Employee: <strong>{payrollContext.employee?.fullName || `${payrollContext.employee?.firstName} ${payrollContext.employee?.lastName}`}</strong></p>
+                        <p>Employee: <strong>{payrollContext.employee?.fullName}</strong></p>
                     </div>
                     <div className="adj-period-badge">{payrollContext.month} {payrollContext.year}</div>
                 </header>
 
                 <div className="adj-summary-strip">
+                    {/* --- NEW: Earned Salary Input Column --- */}
+                    <div className="summary-item highlight-item">
+                        <label>EARNED SALARY (EDITABLE)</label>
+                        <input 
+                            type="number" 
+                            value={earnedSalary} 
+                            onChange={(e) => setEarnedSalary(e.target.value)} 
+                            className="adj-mini-input salary-highlight" 
+                        />
+                    </div>
                     <div className="summary-item">
                         <label>FESTIVAL BONUS</label>
                         <input type="number" value={festivalBonus} onChange={(e) => setFestivalBonus(e.target.value)} className="adj-mini-input" />

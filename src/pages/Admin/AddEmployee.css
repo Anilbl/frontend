@@ -9,12 +9,18 @@
   padding: 40px 50px;
   border-radius: 16px;
   width: 100%;
-  max-width: 1400px; /* Expands to full desktop width */
+  max-width: 1400px;
   margin: 0 auto;
   box-shadow: 0 10px 25px rgba(0,0,0,0.05);
 }
 
-/* Large Gaps to stop fields from touching */
+.form-header h3 {
+  margin-bottom: 25px;
+  color: #1e293b;
+  font-size: 1.5rem;
+}
+
+/* 4-Column Grid */
 .form-grid-4 {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -36,9 +42,44 @@
   border: 1px solid #cbd5e1;
   border-radius: 8px;
   font-size: 1rem;
+  transition: all 0.2s;
 }
 
-/* Bottom Logic: Address takes up majority space */
+.field-item input:focus, .field-item select:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+/* SSF Box Styling */
+.ssf-toggle-box {
+  background: #f8fafc;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px dashed #cbd5e1;
+}
+
+.ssf-switch-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.ssf-switch-label {
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  color: #475569;
+}
+
+#ssf-enroll {
+  width: 22px;
+  height: 22px;
+  cursor: pointer;
+}
+
+/* Bottom Section */
 .form-bottom-section {
   display: grid;
   grid-template-columns: 1.5fr 1fr;
@@ -50,7 +91,7 @@
 
 .addr-side textarea {
   width: 100%;
-  height: 100px; /* Real height for typing */
+  height: 100px;
   padding: 15px;
   border: 1px solid #cbd5e1;
   border-radius: 8px;
@@ -75,13 +116,14 @@
 
 .btn-cancel {
   flex: 1;
-  color: rgb(17, 4, 4);
+  color: #fff;
   padding: 15px;
   background: #062a4f;
   border: 1px solid #153b69;
   border-radius: 8px;
   cursor: pointer;
 }
+
 .success-banner {
   background-color: #dcfce7;
   color: #166534;
@@ -91,15 +133,14 @@
   text-align: center;
   font-weight: 600;
   border: 1px solid #10b981;
-  animation: slideDown 0.3s ease;
 }
 
-.form-fade {
-  opacity: 0.6;
-  pointer-events: none; /* Prevents double submission during the 2s wait */
-}
-
-@keyframes slideDown {
-  from { transform: translateY(-10px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+.error-banner {
+  background-color: #fee2e2;
+  color: #b91c1c;
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+  text-align: center;
+  border: 1px solid #f87171;
 }

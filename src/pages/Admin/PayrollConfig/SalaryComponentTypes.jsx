@@ -110,9 +110,7 @@ export default function SalaryComponents() {
               <th>Name</th>
               <th>Type</th>
               <th>Method</th>
-              <th>Default Value</th>
               <th>Description</th>
-              <th>Required</th>
               <th>Actions</th>
             </tr>
           </thead>

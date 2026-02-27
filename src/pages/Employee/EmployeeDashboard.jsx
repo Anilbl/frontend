@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { getDashboardStats } from "../../api/employeeApi";
 import { getAttendanceByEmployee } from "../../api/attendanceApi";
+import api from "../../api/axios"; // Import the same axios instance used in Leave Management
 import "./EmployeeDashboard.css";
 
 const EmployeeDashboard = () => {
@@ -23,16 +24,21 @@ const EmployeeDashboard = () => {
         const empId = session.empId;
         if (!empId) return;
 
-        // Fetch data concurrently
-        const [statsRes, attendanceRes] = await Promise.all([
+        // FETCH DATA: 
+        // 1. Stats (Attendance/Salary)
+        // 2. Attendance Logs (For fallback % calculation)
+        // 3. Leave Balances (The same call used in Leave Management portal)
+        const [statsRes, attendanceRes, balanceRes] = await Promise.all([
           getDashboardStats(empId).catch(() => ({ data: {} })),
           getAttendanceByEmployee(empId).catch(() => ({ data: [] })),
+          api.get(`/leave-balance/employee/${empId}`).catch(() => ({ data: [] }))
         ]);
 
-        const logs = attendanceRes.data || [];
         const stats = statsRes.data || {};
+        const logs = attendanceRes.data || [];
+        const balances = Array.isArray(balanceRes.data) ? balanceRes.data : [balanceRes.data];
 
-        // 1. Resolve Name: Preference to session, fallback to attendance log
+        // --- 1. Resolve Name ---
         let fullName = session.firstName
           ? `${session.firstName} ${session.lastName}`
           : "Employee";
@@ -42,38 +48,30 @@ const EmployeeDashboard = () => {
           fullName = `${emp.firstName} ${emp.lastName}`;
         }
 
-        // 2. Calculate Monthly Attendance %
+        // --- 2. Calculate Attendance % (Fallback logic if stats doesn't provide it) ---
         const now = new Date();
-        const totalDaysInMonth = new Date(
-          now.getFullYear(),
-          now.getMonth() + 1,
-          0
-        ).getDate();
-
+        const totalDaysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
         const currentMonthLogs = logs.filter((log) => {
           const d = new Date(log.attendanceDate);
-          return (
-            d.getMonth() === now.getMonth() &&
-            d.getFullYear() === now.getFullYear()
-          );
+          return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
         });
+        const uniqueDays = new Set(currentMonthLogs.map((l) => l.attendanceDate)).size;
+        const calculatedPercent = totalDaysInMonth > 0 ? ((uniqueDays / totalDaysInMonth) * 100).toFixed(1) : 0;
 
-        const uniqueDays = new Set(currentMonthLogs.map((l) => l.attendanceDate))
-          .size;
-        const calculatedPercent =
-          totalDaysInMonth > 0
-            ? ((uniqueDays / totalDaysInMonth) * 100).toFixed(1)
-            : 0;
+        // --- 3. Calculate Total Leave Quota (Replicating LeaveManagement logic) ---
+        // This sums up all currentBalanceDays from all leave types (Casual, Sick, etc.)
+        const totalAvailableQuota = balances.reduce((sum, b) => sum + (b.currentBalanceDays || 0), 0);
 
-        // 3. Update State
+        // --- 4. Update State ---
         setEmployeeInfo({
           name: fullName,
           attendance: stats.attendance || `${calculatedPercent}%`,
-          leaveBalance: `${stats.remainingLeaves || stats.leaveBalance || 0} Days`,
-          lastSalary: `Rs. ${stats.lastSalary || stats.netSalary || 0}`,
+          leaveBalance: `${totalAvailableQuota} Days`, 
+          lastSalary: stats.netSalary || `Rs. ${stats.lastSalary || 0}`,
           tax: `Rs. ${stats.taxableAmount || 0}`,
           totalAllowances: `Rs. ${stats.totalAllowances || 0}`,
         });
+
       } catch (err) {
         console.error("Dashboard Load Failed", err);
       } finally {
@@ -87,7 +85,7 @@ const EmployeeDashboard = () => {
   if (loading) {
     return (
       <div className="dashboard-content-wrapper">
-        <div className="loading-text">Loading Dashboard...</div>
+        <div className="loading-text">Loading Dashboard Data...</div>
       </div>
     );
   }
@@ -96,7 +94,7 @@ const EmployeeDashboard = () => {
     <div className="dashboard-content-wrapper">
       <header className="dashboard-welcome-header">
         <h1>Welcome Back, {employeeInfo.name}! 👋</h1>
-        <p>Here is what's happening with your profile today.</p>
+        <p>Your current workspace status at a glance.</p>
       </header>
 
       <div className="stats-row">
@@ -107,7 +105,7 @@ const EmployeeDashboard = () => {
           color="#4f46e5"
         />
         <StatCard
-          label="Leave Balance"
+          label="Total Available Quota"
           value={employeeInfo.leaveBalance}
           icon="📝"
           color="#0891b2"
@@ -129,7 +127,7 @@ const StatCard = ({ label, value, icon, color }) => (
       className="kpi-icon-container"
       style={{
         color: color,
-        backgroundColor: `${color}15`, // 15% opacity hex trick
+        backgroundColor: `${color}15`,
       }}
     >
       {icon}

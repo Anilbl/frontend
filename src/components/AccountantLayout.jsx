@@ -25,7 +25,7 @@ const AccountantLayout = () => {
     const path = location.pathname;
     if (path.includes('dashboard')) return 'Financial Dashboard';
     if (path.includes('salary')) return 'Salary Management';
-    if (path.includes('payroll')) return 'Payroll Verification';
+    if (path.includes('payroll')) return 'Payroll';
     if (path.includes('tax')) return 'Tax & Compliance';
     return 'Finance Portal';
   };

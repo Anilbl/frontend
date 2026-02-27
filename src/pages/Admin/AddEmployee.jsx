@@ -11,14 +11,15 @@ const AddEmployee = () => {
 
   const [formData, setFormData] = useState({
     firstName: "", 
-    middleName: "", // NEW FIELD
+    middleName: "", 
     lastName: "", 
-    gender: "",     // NEW FIELD
+    gender: "",      
     email: "", 
     contact: "", 
     address: "",
     education: "", 
     maritalStatus: "SINGLE", 
+    isSsfEnrolled: false,
     departmentId: "",
     positionId: "", 
     isActive: true, 
@@ -36,6 +37,10 @@ const AddEmployee = () => {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
+  
+  // Validation States
+  const [accNumError, setAccNumError] = useState(""); 
+  const [emailError, setEmailError] = useState("");
 
   useEffect(() => {
     const loadInit = async () => {
@@ -45,7 +50,6 @@ const AddEmployee = () => {
           api.get("/designations"),
           api.get("/banks")
         ]);
-        
         setDepartments(d.data); 
         setPositions(p.data);
         setBanks(b.data);
@@ -55,55 +59,76 @@ const AddEmployee = () => {
           const u = res.data || res;
           setFormData({
             ...u, 
+            isSsfEnrolled: u.isSsfEnrolled || false,
             departmentId: u.department?.deptId || "", 
             positionId: u.position?.designationId || "",
+            basicSalary: u.basicSalary || 0,
             bankId: u.bankAccount?.[0]?.bank?.bankId || u.bankAccount?.bank?.bankId || "",
-            accountNumber: u.bankAccount?.[0]?.accountNumber || u.bankAccount?.accountNumber || "",
-            accountType: u.bankAccount?.[0]?.accountType || u.bankAccount?.accountType || "SALARY",
-            currency: u.bankAccount?.[0]?.currency || u.bankAccount?.currency || "NPR"
+            accountNumber: String(u.bankAccount?.[0]?.accountNumber || u.bankAccount?.accountNumber || ""),
           });
         }
-      } catch (e) { 
-        console.error("Initialization error:", e); 
-      }
+      } catch (e) { console.error("Initialization error:", e); }
     };
     loadInit();
   }, [id, isEditMode]);
 
-  useEffect(() => {
-    if (formData.positionId && positions.length > 0) {
-      const selectedPos = positions.find(p => String(p.designationId) === String(formData.positionId));
-      if (selectedPos) {
-        setFormData(prev => ({
-          ...prev,
-          basicSalary: selectedPos.baseSalary 
-        }));
+  const handlePositionChange = (e) => {
+    const selectedId = e.target.value;
+    const selectedPos = positions.find(p => String(p.designationId) === String(selectedId));
+    setFormData(prev => ({
+      ...prev,
+      positionId: selectedId,
+      basicSalary: selectedPos ? (selectedPos.baseSalary || selectedPos.defaultSalary) : prev.basicSalary
+    }));
+  };
+
+  // Gmail Constraint Logic
+  const handleEmailChange = (e) => {
+    const val = e.target.value;
+    setFormData({ ...formData, email: val });
+    
+    const gmailRegex = /^[a-z0-9](\.?[a-z0-9]){5,}@gmail\.com$/;
+    if (val && !gmailRegex.test(val)) {
+      setEmailError("Must be a valid @gmail.com address");
+    } else {
+      setEmailError("");
+    }
+  };
+
+  // Account Number Constraint Logic (14-16 digits)
+  const handleAccountNumberChange = (e) => {
+    const value = e.target.value.replace(/\D/g, ""); 
+    if (value.length <= 16) {
+      setFormData({ ...formData, accountNumber: value });
+      if (value.length > 0 && value.length < 14) {
+        setAccNumError("Minimum 14 digits required.");
+      } else {
+        setAccNumError("");
       }
     }
-  }, [formData.positionId, positions]);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setErrorMsg("");
-    setSuccessMsg("");
-
-    if (!/^\d{10}$/.test(formData.contact)) {
-      setErrorMsg("Contact number must be exactly 10 digits.");
-      setLoading(false);
+    
+    // Final check for constraints
+    if (formData.accountNumber.length < 14) {
+      setErrorMsg("Account number must be 14-16 digits.");
+      return;
+    }
+    if (emailError) {
+      setErrorMsg("Please provide a valid Gmail address.");
       return;
     }
 
+    setLoading(true);
+    setErrorMsg("");
+
     try {
       const userRes = await api.get(`/users/search?email=${formData.email}`);
-      const userData = userRes.data;
-      const foundUser = Array.isArray(userData) ? userData[0] : userData;
+      const foundUser = Array.isArray(userRes.data) ? userRes.data[0] : userRes.data;
 
-      if (!foundUser || !foundUser.userId) {
-        setErrorMsg("Email not found in User database. Create User account first.");
-        setLoading(false);
-        return;
-      }
+      if (!foundUser) throw new Error("Email not found in User records.");
       
       const payload = { 
         ...formData, 
@@ -113,18 +138,16 @@ const AddEmployee = () => {
         bankAccount: [{
           bank: { bankId: parseInt(formData.bankId) },
           accountNumber: formData.accountNumber,
-          accountType: formData.accountType,
-          currency: formData.currency,
           isPrimary: true
         }]
       };
 
       isEditMode ? await updateEmployee(id, payload) : await createEmployee(payload);
-      setSuccessMsg(isEditMode ? "Employee updated successfully!" : "Employee registered successfully!");
-      setTimeout(() => navigate("/admin/employees"), 2000); 
+      setSuccessMsg("Success! Employee record saved.");
+      setTimeout(() => navigate("/admin/employees"), 1500); 
 
     } catch (err) { 
-      setErrorMsg(err.response?.data?.message || "Operation failed.");
+      setErrorMsg(err.message || "Operation failed.");
       setLoading(false); 
     }
   };
@@ -139,119 +162,120 @@ const AddEmployee = () => {
         {errorMsg && <div className="error-banner">{errorMsg}</div>}
         {successMsg && <div className="success-banner">{successMsg}</div>}
 
-        <form onSubmit={handleSubmit} className={`compact-form ${successMsg ? "form-fade" : ""}`}>
+        <form onSubmit={handleSubmit} className="compact-form">
           <div className="form-grid-4">
             <div className="field-item">
               <label>First Name</label>
-              <input value={formData.firstName} onChange={(e)=>setFormData({...formData, firstName: e.target.value})} required disabled={!!successMsg}/>
+              <input value={formData.firstName} onChange={(e)=>setFormData({...formData, firstName: e.target.value})} required />
             </div>
-
-            {/* NEW MIDDLE NAME FIELD */}
             <div className="field-item">
-              <label>Middle Name (Optional)</label>
-              <input value={formData.middleName || ""} onChange={(e)=>setFormData({...formData, middleName: e.target.value})} disabled={!!successMsg}/>
+              <label>Middle Name</label>
+              <input value={formData.middleName || ""} onChange={(e)=>setFormData({...formData, middleName: e.target.value})} />
             </div>
-            
             <div className="field-item">
               <label>Last Name</label>
-              <input value={formData.lastName} onChange={(e)=>setFormData({...formData, lastName: e.target.value})} required disabled={!!successMsg}/>
+              <input value={formData.lastName} onChange={(e)=>setFormData({...formData, lastName: e.target.value})} required />
             </div>
-
-            {/* NEW GENDER FIELD */}
             <div className="field-item">
               <label>Gender</label>
-              <select value={formData.gender} onChange={(e)=>setFormData({...formData, gender: e.target.value})} required disabled={!!successMsg}>
-                <option value="">Select Gender...</option>
+              <select value={formData.gender} onChange={(e)=>setFormData({...formData, gender: e.target.value})} required>
+                <option value="">Select...</option>
                 <option value="MALE">MALE</option>
                 <option value="FEMALE">FEMALE</option>
                 <option value="OTHER">OTHER</option>
               </select>
             </div>
 
+            {/* EMAIL WITH GMAIL CONSTRAINT */}
             <div className="field-item">
-              <label>Email (Verified)</label>
-              <input type="email" value={formData.email} onChange={(e)=>setFormData({...formData, email: e.target.value})} required disabled={!!successMsg}/>
+              <label>Gmail Address</label>
+              <input 
+                type="email" 
+                value={formData.email} 
+                onChange={handleEmailChange} 
+                placeholder="example@gmail.com"
+                required 
+              />
+              {emailError && <span className="field-helper" style={{color: '#dc2626'}}>{emailError}</span>}
             </div>
 
             <div className="field-item">
               <label>Contact</label>
-              <input type="text" maxLength="10" value={formData.contact} onChange={(e) => setFormData({...formData, contact: e.target.value.replace(/\D/g, "")})} required disabled={!!successMsg} />
+              <input type="text" maxLength="10" value={formData.contact} onChange={(e) => setFormData({...formData, contact: e.target.value.replace(/\D/g, "")})} required />
             </div>
-
             <div className="field-item">
               <label>Department</label>
-              <select value={formData.departmentId} onChange={(e)=>setFormData({...formData, departmentId: e.target.value})} required disabled={!!successMsg}>
-                <option value="">Select Dept...</option>
+              <select value={formData.departmentId} onChange={(e)=>setFormData({...formData, departmentId: e.target.value})} required>
+                <option value="">Select...</option>
                 {departments.map(d => <option key={d.deptId} value={d.deptId}>{d.deptName}</option>)}
               </select>
             </div>
-
             <div className="field-item">
-              <label>Position (Designation)</label>
-              <select value={formData.positionId} onChange={(e)=>setFormData({...formData, positionId: e.target.value})} required disabled={!!successMsg}>
-                <option value="">Select Position...</option>
+              <label>Position</label>
+              <select value={formData.positionId} onChange={handlePositionChange} required>
+                <option value="">Select...</option>
                 {positions.map(p => <option key={p.designationId} value={p.designationId}>{p.designationTitle}</option>)}
               </select>
             </div>
-
-            <div className="field-item highlight-field">
-              <label>Basic Salary (Locked)</label>
-              <input 
-                type="text" 
-                value={`Rs. ${formData.basicSalary.toLocaleString()}`} 
-                readOnly 
-                className="locked-input" 
-                style={{ backgroundColor: "#f0f0f0", cursor: "not-allowed", fontWeight: "bold", color: "#2c3e50" }}
-              />
+            <div className="field-item">
+                <label>Marital Status</label>
+                <select value={formData.maritalStatus} onChange={(e)=>setFormData({...formData, maritalStatus: e.target.value})}>
+                    <option value="SINGLE">SINGLE</option>
+                    <option value="MARRIED">MARRIED</option>
+                </select>
             </div>
-
+            <div className="field-item ssf-toggle-box">
+                <label>SSF Enrollment</label>
+                <div className="ssf-switch-wrapper">
+                    <input type="checkbox" id="ssf-enroll" checked={formData.isSsfEnrolled} onChange={(e) => setFormData({...formData, isSsfEnrolled: e.target.checked})}/>
+                    <label htmlFor="ssf-enroll" className="ssf-switch-label"> {formData.isSsfEnrolled ? "✅ Enrolled" : "❌ No"} </label>
+                </div>
+            </div>
             <div className="field-item">
               <label>Joining Date</label>
-              <input type="date" value={formData.joiningDate} onChange={(e)=>setFormData({...formData, joiningDate: e.target.value})} required disabled={!!successMsg}/>
+              <input type="date" value={formData.joiningDate} onChange={(e)=>setFormData({...formData, joiningDate: e.target.value})} required/>
             </div>
-
             <div className="field-item">
-              <label>Bank Name</label>
-              <select value={formData.bankId} onChange={(e)=>setFormData({...formData, bankId: e.target.value})} required disabled={!!successMsg}>
-                <option value="">Select Bank...</option>
+              <label>Bank</label>
+              <select value={formData.bankId} onChange={(e)=>setFormData({...formData, bankId: e.target.value})} required>
+                <option value="">Select...</option>
                 {banks.map(b => <option key={b.bankId} value={b.bankId}>{b.bankName}</option>)}
               </select>
             </div>
 
+            {/* ACCOUNT NUMBER (14-16 DIGITS) */}
             <div className="field-item">
               <label>Account Number</label>
-              <input value={formData.accountNumber} onChange={(e)=>setFormData({...formData, accountNumber: e.target.value})} required disabled={!!successMsg}/>
+              <input 
+                type="text" 
+                value={formData.accountNumber} 
+                onChange={handleAccountNumberChange} 
+                placeholder="14-16 digits"
+                required 
+              />
+              {accNumError && <span className="field-helper" style={{color: '#dc2626'}}>{accNumError}</span>}
             </div>
 
             <div className="field-item">
-                <label>Education</label>
-                <input value={formData.education} onChange={(e)=>setFormData({...formData, education: e.target.value})} required disabled={!!successMsg}/>
-            </div>
-
-            <div className="field-item">
-                <label>Marital Status</label>
-                <select value={formData.maritalStatus} onChange={(e)=>setFormData({...formData, maritalStatus: e.target.value})} required disabled={!!successMsg}>
-                    <option value="SINGLE">SINGLE</option>
-                    <option value="MARRIED">MARRIED</option>
-                </select>
+              <label>Basic Salary</label>
+              <input type="number" value={formData.basicSalary} onChange={(e) => setFormData({...formData, basicSalary: e.target.value})} required />
             </div>
           </div>
 
           <div className="form-bottom-section">
             <div className="addr-side">
               <label>Permanent Address</label>
-              <textarea value={formData.address} onChange={(e)=>setFormData({...formData, address: e.target.value})} required disabled={!!successMsg}/>
+              <textarea value={formData.address} onChange={(e)=>setFormData({...formData, address: e.target.value})} required />
             </div>
-            
             <div className="btn-side">
-              {!successMsg && (
-                <>
-                  <button type="button" className="btn-cancel" onClick={() => navigate("/admin/employees")}>Cancel</button>
-                  <button type="submit" className="btn-save" disabled={loading}>
-                    {loading ? "Processing..." : isEditMode ? "Update Details" : "Save Employee"}
-                  </button>
-                </>
-              )}
+              <button type="button" className="btn-cancel" onClick={() => navigate("/admin/employees")}>Cancel</button>
+              <button 
+                type="submit" 
+                className="btn-save" 
+                disabled={loading || formData.accountNumber.length < 14 || !!emailError}
+              >
+                {loading ? "Processing..." : isEditMode ? "Update" : "Save"}
+              </button>
             </div>
           </div>
         </form>

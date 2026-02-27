@@ -13,29 +13,51 @@ export default function Users() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
+  // State for capturing the actual backend error message
+  const [errorMessage, setErrorMessage] = useState("");
+
   const [showModal, setShowModal] = useState(false);
   const [targetId, setTargetId] = useState(null);
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { 
+    fetchData(); 
+  }, []);
 
   const fetchData = async () => {
+    setLoading(true);
     try {
       const res = await getUsers();
+      // Handle various response formats
       setUsers(res.data || res || []);
-    } catch (err) { console.error(err); } 
-    finally { setLoading(false); }
+      setErrorMessage(""); 
+    } catch (err) { 
+      // Capture the specific error message from Spring Boot
+      const msg = err.response?.data?.message || "Error fetching user list.";
+      setErrorMessage(msg);
+    } finally { 
+      setLoading(false); 
+    }
   };
 
   const confirmDelete = async () => {
     try {
       await deleteUser(targetId);
+      setErrorMessage(""); 
       fetchData();
-    } catch (err) { console.error(err); } 
-    finally { setShowModal(false); }
+    } catch (err) { 
+      // Capture the specific error message if deletion fails
+      const msg = err.response?.data?.message || "Deletion failed.";
+      setErrorMessage(msg);
+    } finally { 
+      setShowModal(false); 
+    }
   };
 
   const filteredUsers = users
-    .filter(u => u.username.toLowerCase().includes(searchTerm.toLowerCase()) || u.userId.toString().includes(searchTerm))
+    .filter(u => 
+      (u.username?.toLowerCase().includes(searchTerm.toLowerCase())) || 
+      (u.userId?.toString().includes(searchTerm))
+    )
     .sort((a, b) => b.userId - a.userId);
 
   const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
@@ -45,7 +67,11 @@ export default function Users() {
 
   return (
     <div className="user-app-canvas">
-      <ConfirmModal show={showModal} onConfirm={confirmDelete} onCancel={() => setShowModal(false)} />
+      <ConfirmModal 
+        show={showModal} 
+        onConfirm={confirmDelete} 
+        onCancel={() => setShowModal(false)} 
+      />
 
       <header className="user-page-header">
         <input 
@@ -55,8 +81,20 @@ export default function Users() {
           onChange={(e) => {setSearchTerm(e.target.value); setCurrentPage(1);}} 
         />
         <h3 className="user-centered-title">User Management</h3>
-        <button className="user-primary-btn" onClick={() => navigate("/admin/users/new")}>+ Create User</button>
+        <button className="user-primary-btn" onClick={() => navigate("/admin/users/new")}>
+          + Create User
+        </button>
       </header>
+
+      {/* DYNAMIC ERROR MESSAGE DISPLAY */}
+      {errorMessage && (
+        <div className="error-alert-banner">
+          <div className="error-content">
+            <strong>Action Failed:</strong> {errorMessage}
+          </div>
+          <button className="close-error-btn" onClick={() => setErrorMessage("")}>&times;</button>
+        </div>
+      )}
 
       <div className="user-list-card">
         <div className="user-grid-header">
@@ -68,13 +106,17 @@ export default function Users() {
         </div>
 
         <div className="user-list-body">
-          {currentData.map((user) => (
+          {currentData.length > 0 ? currentData.map((user) => (
             <div key={user.userId} className="user-row-wrapper">
               <div className="user-row-visible">
                 <span className="user-font-bold">#{user.userId} - {user.username}</span>
                 <span>{user.email}</span>
                 <span>{user.role?.roleName || "N/A"}</span>
-                <span><span className={`user-status-pill ${user.status?.toLowerCase()}`}>{user.status}</span></span>
+                <span>
+                  <span className={`user-status-pill ${user.isActive ? 'active' : 'inactive'}`}>
+                    {user.isActive ? "Active" : "Inactive"}
+                  </span>
+                </span>
                 <div style={{ textAlign: "right" }}>
                   <button className="user-view-btn" onClick={() => setExpandedId(expandedId === user.userId ? null : user.userId)}>
                     {expandedId === user.userId ? "Close" : "View"}
@@ -85,9 +127,10 @@ export default function Users() {
               {expandedId === user.userId && (
                 <div className="user-expand-tray">
                   <div className="user-details-layout">
-                    <span><strong>Username:</strong> {user.username}</span>
-                    <span><strong>User ID:</strong> {user.userId}</span>
-                    <span><strong>Role:</strong> {user.role?.roleName}</span>
+                    <span><strong>Full Username:</strong> {user.username}</span>
+                    <span><strong>System ID:</strong> {user.userId}</span>
+                    <span><strong>Primary Role:</strong> {user.role?.roleName}</span>
+                    <span><strong>Email:</strong> {user.email}</span>
                     <div className="user-tray-buttons">
                       <button className="user-btn-edit" onClick={() => navigate(`/admin/users/edit/${user.userId}`)}>Edit User</button>
                       <button className="user-btn-delete" onClick={() => { setTargetId(user.userId); setShowModal(true); }}>Delete User</button>
@@ -96,7 +139,9 @@ export default function Users() {
                 </div>
               )}
             </div>
-          ))}
+          )) : (
+            <div className="no-data-msg">No records found matching your search.</div>
+          )}
         </div>
 
         <footer className="user-footer-pagination">

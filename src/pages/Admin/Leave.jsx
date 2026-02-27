@@ -5,7 +5,6 @@ import "./Leave.css";
 
 const LeaveAdmin = () => {
   const [leaveRequests, setLeaveRequests] = useState([]);
-  const [attendanceStats, setAttendanceStats] = useState({}); 
   const [loading, setLoading] = useState(true);
   
   const today = new Date();
@@ -37,30 +36,14 @@ const LeaveAdmin = () => {
       });
       
       const leaves = Array.isArray(res.data) ? res.data : [];
+      // Ensuring newest requests stay at the top
       const sortedLeaves = leaves.sort((a, b) => b.leaveId - a.leaveId);
       setLeaveRequests(sortedLeaves);
-
-      const uniqueEmpIds = [...new Set(leaves.map(l => l.employee?.empId).filter(id => id))];
-      fetchAttendanceStats(uniqueEmpIds);
     } catch (err) {
       console.error("Fetch error:", err);
     } finally {
       setLoading(false);
     }
-  };
-
-  const fetchAttendanceStats = async (empIds) => {
-    const statsMap = {};
-    await Promise.all(empIds.map(async (id) => {
-      try {
-        const res = await api.get(`/attendance/employee/${id}`);
-        const workingDays = res.data.filter(a => a.status === "PRESENT").length;
-        statsMap[id] = workingDays;
-      } catch (e) {
-        statsMap[id] = 0;
-      }
-    }));
-    setAttendanceStats(statsMap);
   };
 
   useEffect(() => {
@@ -73,7 +56,9 @@ const LeaveAdmin = () => {
       setSelectedLeaveId(leaveId);
       setShowRejectModal(true);
     } else {
-      submitStatusUpdate(leaveId, "Approved", "");
+      if(window.confirm("Are you sure you want to approve this leave request?")) {
+        submitStatusUpdate(leaveId, "Approved", "");
+      }
     }
   };
 
@@ -83,7 +68,7 @@ const LeaveAdmin = () => {
     const adminId = userSession?.empId;
 
     if (!adminId) {
-        alert("Session error: ID not found.");
+        alert("Session error: Admin ID not found. Please log in again.");
         return;
     }
 
@@ -99,16 +84,27 @@ const LeaveAdmin = () => {
         setRejectionReason("");
         fetchLeaves(); 
     } catch (err) {
-        alert("Failed: " + (err.response?.data?.message || "Error"));
+        alert("Failed to update: " + (err.response?.data?.message || "Internal error"));
     }
   };
 
+  // Pagination Logic
   const indexOfLastRecord = currentPage * recordsPerPage;
   const indexOfFirstRecord = indexOfLastRecord - recordsPerPage;
   const currentRecords = leaveRequests.slice(indexOfFirstRecord, indexOfLastRecord);
   const totalPages = Math.ceil(leaveRequests.length / recordsPerPage);
 
-  const paginate = (pageNumber) => setCurrentPage(pageNumber);
+  const paginate = (pageNumber) => {
+    setCurrentPage(pageNumber);
+    window.scrollTo(0, 0);
+  };
+
+  // Helper to format date strings nicely
+  const formatDate = (dateString) => {
+    if (!dateString) return "-";
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  };
 
   return (
     <div className="leave-container">
@@ -125,10 +121,10 @@ const LeaveAdmin = () => {
           />
           
           <select value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)} className="filter-select">
-            <option value="Pending">Pending</option>
+            <option value="Pending">Pending Approvals</option>
             <option value="Approved">Approved</option>
             <option value="Rejected">Rejected</option>
-            <option value="All">All</option>
+            <option value="All">All Requests</option>
           </select>
 
           <div className="date-group">
@@ -147,7 +143,7 @@ const LeaveAdmin = () => {
       </div>
 
       <div className="record-summary-line">
-        Showing <strong>{selectedStatus}</strong> requests for <strong>{new Date(0, selectedMonth-1).toLocaleString('default', {month: 'long'})} {selectedYear}</strong> — {leaveRequests.length} records
+        Showing <strong>{selectedStatus}</strong> requests for <strong>{new Date(0, selectedMonth-1).toLocaleString('default', {month: 'long'})} {selectedYear}</strong> — Total: {leaveRequests.length}
       </div>
 
       <div className="leave-table-wrapper">
@@ -157,12 +153,13 @@ const LeaveAdmin = () => {
           <table className="leave-table">
             <thead>
               <tr>
-                <th>Employee</th>
-                <th>Type</th>
-                <th>Working Days</th>
-                <th>Leave Days</th>
+                <th style={{width: '20%'}}>Employee</th>
+                <th>Leave Type</th>
+                <th>Start Date</th>
+                <th>End Date</th>
+                <th>Days</th>
                 <th>Status</th>
-                <th>Action</th>
+                <th style={{textAlign: 'right'}}>Action</th>
               </tr>
             </thead>
             <tbody>
@@ -176,14 +173,14 @@ const LeaveAdmin = () => {
                       </div>
                     </td>
                     <td>{leave.leaveType?.typeName}</td>
-                    <td className="stat-cell">{attendanceStats[leave.employee?.empId] || 0}</td>
-                    <td className="stat-cell">{leave.totalDays || 0}</td>
+                    <td><span className="date-text">{formatDate(leave.startDate)}</span></td>
+                    <td><span className="date-text">{formatDate(leave.endDate)}</span></td>
+                    <td className="stat-cell">{leave.totalDays}</td>
                     <td>
                       <div className="status-cell-wrapper">
                         <span className={`status-badge ${leave.status?.toLowerCase()}`}>
                           {leave.status}
                         </span>
-                        {/* REJECTION REASON LOGIC */}
                         {leave.status === "Rejected" && leave.rejectionReason && (
                           <div className="rejection-reason-text">
                             <strong>Reason:</strong> {leave.rejectionReason}
@@ -191,8 +188,9 @@ const LeaveAdmin = () => {
                         )}
                       </div>
                     </td>
-                    <td>
-                      {leave.status === "Pending" ? (
+                    <td style={{textAlign: 'right'}}>
+                      {/* FIXED: Comparing status to show buttons only when Pending */}
+                      {String(leave.status).toLowerCase() === "pending" ? (
                         <div className="btn-group">
                           <button className="btn-approve" onClick={() => handleLeaveAction(leave.leaveId, "Approved")}>Approve</button>
                           <button className="btn-reject" onClick={() => handleLeaveAction(leave.leaveId, "Rejected")}>Reject</button>
@@ -205,8 +203,8 @@ const LeaveAdmin = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="6" style={{textAlign: 'center', padding: '3rem', color: '#94a3b8'}}>
-                    No records found.
+                  <td colSpan="7" style={{textAlign: 'center', padding: '3rem', color: '#94a3b8'}}>
+                    No leave requests found for this selection.
                   </td>
                 </tr>
               )}
@@ -218,12 +216,11 @@ const LeaveAdmin = () => {
       {showRejectModal && (
         <div className="modal-overlay">
           <div className="rejection-modal">
-            <h3>Reject Request</h3>
+            <h3>Reject Leave Request</h3>
             <textarea 
               value={rejectionReason}
               onChange={(e) => setRejectionReason(e.target.value)}
-              placeholder="Why are you rejecting this request? (Required)"
-              required
+              placeholder="Please provide a reason for the rejection (Required)..."
             />
             <div className="modal-actions">
               <button className="btn-cancel" onClick={() => setShowRejectModal(false)}>Cancel</button>
@@ -231,7 +228,9 @@ const LeaveAdmin = () => {
                 className="btn-confirm-reject" 
                 onClick={() => submitStatusUpdate(selectedLeaveId, "Rejected", rejectionReason)}
                 disabled={!rejectionReason.trim()}
-              >Confirm Rejection</button>
+              >
+                Confirm Reject
+              </button>
             </div>
           </div>
         </div>

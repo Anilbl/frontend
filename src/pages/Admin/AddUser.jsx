@@ -13,8 +13,7 @@ export default function AddUser() {
   const [formData, setFormData] = useState({
     username: "",
     email: "",
-    role: { roleId: "" }, 
-    status: "ACTIVE"
+    role: { roleId: "" }
   });
 
   const [roles, setRoles] = useState([]);
@@ -30,19 +29,17 @@ export default function AddUser() {
 
       if (isEditMode) {
         const userRes = await getUserById(id);
-        const u = userRes.data ? userRes.data : userRes;
+        const u = userRes.data || userRes;
         if (u) {
           setFormData({
             username: u.username || "",
             email: u.email || "",
-            role: { roleId: u.role?.roleId || u.roleId || "" },
-            status: u.status || "ACTIVE"
+            role: { roleId: u.role?.roleId || u.roleId || "" }
           });
         }
       }
     } catch (err) {
-      console.error("Init error:", err);
-      setStatusMsg({ type: "error", text: "Failed to load roles." });
+      setStatusMsg({ type: "error", text: "Failed to load roles or user data." });
     } finally {
       setLoading(false);
     }
@@ -52,10 +49,17 @@ export default function AddUser() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    
+    // Logic: Strip spaces for username field
+    let processedValue = value;
+    if (name === "username") {
+      processedValue = value.replace(/\s+/g, "");
+    }
+
     if (name === "roleId") {
-      setFormData(prev => ({ ...prev, role: { roleId: value } }));
+      setFormData(prev => ({ ...prev, role: { roleId: processedValue } }));
     } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
+      setFormData(prev => ({ ...prev, [name]: processedValue }));
     }
   };
 
@@ -66,28 +70,22 @@ export default function AddUser() {
 
     try {
       const payload = {
-        username: formData.username,
+        ...(!isEditMode && { username: formData.username }),
         email: formData.email,
-        status: formData.status,
         role: { roleId: parseInt(formData.role.roleId) }
       };
 
       if (isEditMode) {
         await updateUser(id, payload);
-        setStatusMsg({ type: "success", text: "User account updated successfully!" });
+        setStatusMsg({ type: "success", text: "User profile updated successfully!" });
       } else {
         await createUser(payload);
-        setStatusMsg({ 
-          type: "success", 
-          text: "User created! Default credentials have been sent to their email." 
-        });
+        setStatusMsg({ type: "success", text: "User created! Default credentials sent to email." });
       }
       
       setTimeout(() => navigate("/admin/users"), 2000);
-
     } catch (err) {
-      console.error("Submit error:", err);
-      const errorDetail = err.response?.data?.message || "Check your network connection.";
+      const errorDetail = err.response?.data?.message || "An unexpected error occurred.";
       setStatusMsg({ type: "error", text: errorDetail });
     } finally {
       setLoading(false);
@@ -97,7 +95,7 @@ export default function AddUser() {
   return (
     <div className="app-canvas">
       <header className="page-header">
-        <h3>{isEditMode ? "Edit User Account" : "Register New User"}</h3>
+        <h3>{isEditMode ? "Modify User Account" : "Register New User"}</h3>
       </header>
 
       {statusMsg.text && (
@@ -105,26 +103,29 @@ export default function AddUser() {
       )}
 
       <div className="form-card-container">
-        {/* Help text only for creation */}
         {!isEditMode && (
           <div className="info-alert">
             <FaInfoCircle />
-            <span>The system will generate a secure password and email it to the user.</span>
+            <span>Usernames are automatically stripped of spaces.</span>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="user-form">
           <div className="form-grid">
-            <div className="form-group">
-              <label>Username</label>
-              <input 
-                name="username" 
-                placeholder="e.g. jdoe123"
-                value={formData.username} 
-                onChange={handleChange} 
-                required 
-              />
-            </div>
+            
+            {/* Username hidden in Edit Mode */}
+            {!isEditMode && (
+              <div className="form-group">
+                <label>Username</label>
+                <input 
+                  name="username" 
+                  placeholder="e.g. jdoe123"
+                  value={formData.username} 
+                  onChange={handleChange} 
+                  required 
+                />
+              </div>
+            )}
 
             <div className="form-group">
               <label>Email Address</label>
@@ -142,15 +143,9 @@ export default function AddUser() {
               <label>Organizational Role</label>
               <select name="roleId" value={formData.role.roleId} onChange={handleChange} required>
                 <option value="">-- Select Role --</option>
-                {roles.map(r => <option key={r.roleId} value={r.roleId}>{r.roleName}</option>)}
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label>Account Status</label>
-              <select name="status" value={formData.status} onChange={handleChange}>
-                <option value="ACTIVE">Active</option>
-                <option value="INACTIVE">Inactive</option>
+                {roles.map(r => (
+                  <option key={r.roleId} value={r.roleId}>{r.roleName}</option>
+                ))}
               </select>
             </div>
           </div>
@@ -160,7 +155,7 @@ export default function AddUser() {
               Cancel
             </button>
             <button type="submit" disabled={loading} className="primary-btn">
-              {loading ? "Saving..." : (isEditMode ? "Save Changes" : "Create User")}
+              {loading ? "Processing..." : (isEditMode ? "Save Changes" : "Create Account")}
             </button>
           </div>
         </form>

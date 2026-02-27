@@ -57,18 +57,15 @@ const PayrollPreview = () => {
 
     const handleDisbursement = async () => {
         try {
-            // Step 1: Process and Save Payroll
             const processResponse = await api.post("/payrolls/process", originalPayload);
             const savedPayroll = processResponse.data;
             const payrollId = savedPayroll.payrollId || savedPayroll.id;
 
-            // Step 2: Check for eSewa initiation
             const initResponse = await api.get(`/esewa/initiate/${payrollId}`);
             const esewaData = initResponse.data;
 
             alert("Payroll finalized. Redirecting to eSewa...");
             
-            // Clean up session since processing is finished
             sessionStorage.removeItem("active_payroll_adjustment");
 
             const esewaParams = {
@@ -87,19 +84,13 @@ const PayrollPreview = () => {
 
             postToEsewa(esewaData.esewa_url, esewaParams);
 
-            // Note: Since eSewa is a full page redirect, the code stops here.
-            // Success/Failure redirects are handled by the backend back to your frontend.
-
         } catch (err) {
             console.error("Disbursement Error:", err);
-            // If the failure was only on eSewa initiation but payroll was saved, 
-            // we redirect back to the home page so they can see the record.
             alert("Process completed with warnings or error: " + (err.response?.data?.message || err.message));
             navigate(getPayrollHomePath());
         }
     };
 
-    // --- Component Mapping ---
     const allComponents = previewData.extraComponents || [];
     const earnings = allComponents.filter(c => c.type === "EARNING");
     const statutory = allComponents.filter(c => 
@@ -126,6 +117,14 @@ const PayrollPreview = () => {
                         <h3>{previewData.employee?.firstName} {previewData.employee?.lastName}</h3>
                         <p className="emp-meta">{previewData.employee?.position?.designationTitle}</p>
                         <p className="emp-meta">ID: #{previewData.employee?.empId}</p>
+                        
+                        {/* --- ADDED MARITAL STATUS FOR TAX VERIFICATION --- */}
+                        <div className="tax-context-box">
+                            <span className="status-badge">
+                                Tax Basis: <strong>{previewData.employee?.maritalStatus || "N/A"}</strong>
+                            </span>
+                        </div>
+
                         <div className="attendance-summary-box">
                             <h4>REMARKS</h4>
                             <p>{previewData.remarks || "No remarks provided."}</p>
