@@ -18,7 +18,9 @@ const AttendanceRecords = () => {
     const [backendError, setBackendError] = useState(""); 
     const [canCheckIn, setCanCheckIn] = useState(true);
     const [canCheckOut, setCanCheckOut] = useState(false); 
-    const [isOnLeave, setIsOnLeave] = useState(false); // NEW: Leave state
+    const [isOnLeave, setIsOnLeave] = useState(false); 
+    const [isHoliday, setIsHoliday] = useState(false); // NEW
+    const [isSaturday, setIsSaturday] = useState(false); // NEW
     const [countdown, setCountdown] = useState(""); 
     const [currentTime, setCurrentTime] = useState(new Date()); 
 
@@ -29,21 +31,51 @@ const AttendanceRecords = () => {
     const OFFICE_LON = 80.3160; 
     const ALLOWED_RADIUS_METERS = 300000; 
     const API_URL = "http://localhost:8080/api/attendance";
-    const LEAVE_API_URL = "http://localhost:8080/api/employee-leaves"; // Ensure this is correct
+    const LEAVE_API_URL = "http://localhost:8080/api/employee-leaves";
+    const HOLIDAY_API_URL = "http://localhost:8080/api/holidays"; // NEW
 
     const getAuthHeader = useCallback(() => {
         const token = session.jwt || session.token; 
         return token ? { Authorization: `Bearer ${token}` } : {};
     }, [session.jwt, session.token]);
 
-    // NEW: Function to check if employee is currently on leave
+    // Check if today is Saturday or a Holiday
+    const checkCalendarRestrictions = useCallback(async () => {
+        const today = new Date();
+        const todayStr = today.toISOString().split('T')[0];
+        
+        // 1. Check Saturday
+        if (today.getDay() === 6) { // 6 is Saturday
+            setIsSaturday(true);
+            setCanCheckIn(false);
+            setStatus("WEEKEND (SATURDAY)");
+            setBackendError("Today is Saturday. Check-in is disabled.");
+            return true;
+        }
+
+        // 2. Check Public Holidays from Backend
+        try {
+            const res = await axios.get(HOLIDAY_API_URL, { headers: getAuthHeader() });
+            const holidayToday = res.data.find(h => h.holidayDate === todayStr);
+            if (holidayToday) {
+                setIsHoliday(true);
+                setCanCheckIn(false);
+                setStatus(`HOLIDAY: ${holidayToday.holidayName.toUpperCase()}`);
+                setBackendError(`Today is a public holiday (${holidayToday.holidayName}). Check-in is disabled.`);
+                return true;
+            }
+        } catch (err) {
+            console.error("Error fetching holidays", err);
+        }
+        return false;
+    }, [getAuthHeader]);
+
     const checkLeaveStatus = useCallback(async (id) => {
         try {
             const headers = getAuthHeader();
             const res = await axios.get(LEAVE_API_URL, { headers });
             const today = new Date().toISOString().split('T')[0];
             
-            // Check if any APPROVED leave record covers TODAY
             const activeLeave = res.data.find(leave => 
                 leave.employee?.empId === id &&
                 leave.status === "Approved" &&
@@ -75,9 +107,8 @@ const AttendanceRecords = () => {
             const now = new Date();
             const latestRec = sorted[0]; 
             
-            // Priority 1: Check if On Leave (Overwrites other statuses)
-            if (isOnLeave) {
-                setStatus("ON LEAVE");
+            // PRIORITY RESTRICTIONS
+            if (isOnLeave || isHoliday || isSaturday) {
                 setCanCheckIn(false);
                 return;
             }
@@ -95,7 +126,7 @@ const AttendanceRecords = () => {
                     if (hoursSinceLastIn < 10) {
                         setCanCheckIn(false);
                         setCanCheckOut(false);
-                        setStatus("10H RULE COOLING DOWN");
+                        setStatus("COOLING DOWN");
                         const remainingMs = (10 * 60 * 60 * 1000) - diffMs;
                         const h = Math.floor(remainingMs / 3600000);
                         const m = Math.floor((remainingMs % 3600000) / 60000);
@@ -109,13 +140,12 @@ const AttendanceRecords = () => {
                 }
             } else {
                 setCanCheckIn(true);
-                setCanCheckOut(false);
                 setStatus("Not Checked In");
             }
         } catch (err) {
             setBackendError("Failed to sync attendance history.");
         }
-    }, [employeeId, getAuthHeader, isOnLeave]);
+    }, [employeeId, getAuthHeader, isOnLeave, isHoliday, isSaturday]);
 
     const fetchEmployeeDetails = useCallback(async () => {
         const userId = session.userId; 
@@ -129,7 +159,8 @@ const AttendanceRecords = () => {
                 setFullName(`${res.data.firstName} ${res.data.lastName}`);
                 setEmployeeId(empId); 
                 
-                // Chain the checks
+                // Run all restriction checks
+                await checkCalendarRestrictions();
                 await checkLeaveStatus(empId);
                 await fetchAttendance(empId);
             }
@@ -138,7 +169,7 @@ const AttendanceRecords = () => {
         } finally {
             setLoading(false);
         }
-    }, [session.userId, fetchAttendance, checkLeaveStatus]);
+    }, [session.userId, fetchAttendance, checkLeaveStatus, checkCalendarRestrictions]);
 
     useEffect(() => {
         fetchEmployeeDetails();
@@ -166,6 +197,9 @@ const AttendanceRecords = () => {
     const handleAttendance = async (type) => {
         setBackendError("");
         if (isOnLeave) return setBackendError("Action Denied: You are currently on an approved leave.");
+        if (isSaturday) return setBackendError("Action Denied: Cannot check in on Saturdays.");
+        if (isHoliday) return setBackendError("Action Denied: Today is a public holiday.");
+        
         if (!employeeId) return setBackendError("System syncing. Please wait.");
         if (parseFloat(liveDistance) > ALLOWED_RADIUS_METERS) {
             return setBackendError("Access Denied: You are outside the allowed radius.");
@@ -198,11 +232,8 @@ const AttendanceRecords = () => {
         }
     };
 
-    // Pagination Logic
-    const indexOfLastRecord = currentPage * recordsPerPage;
-    const indexOfFirstRecord = indexOfLastRecord - recordsPerPage;
-    const currentRecords = history.slice(indexOfFirstRecord, indexOfLastRecord);
-    const totalPages = Math.ceil(history.length / recordsPerPage);
+    // Pagination
+    const currentRecords = history.slice((currentPage - 1) * recordsPerPage, currentPage * recordsPerPage);
 
     return (
         <div className="attendance-portal">
@@ -229,6 +260,7 @@ const AttendanceRecords = () => {
                         {status}
                     </div>
                     {isOnLeave && <p className="leave-notice">🏖 Leave is active today.</p>}
+                    {(isHoliday || isSaturday) && <p className="leave-notice">📅 Off-day: No check-in required.</p>}
                     {countdown && <div className="countdown-timer">Available in: {countdown}</div>}
                     
                     <div className="geofence-box">
@@ -249,7 +281,7 @@ const AttendanceRecords = () => {
                         <button 
                             className="btn-pro btn-checkin" 
                             onClick={() => handleAttendance("in")} 
-                            disabled={loading || !canCheckIn || !employeeId || isOnLeave}
+                            disabled={loading || !canCheckIn || !employeeId || isOnLeave || isHoliday || isSaturday}
                         >
                             <div className="btn-content">
                                 <span className="icon">登</span>
@@ -268,7 +300,9 @@ const AttendanceRecords = () => {
                             </div>
                         </button>
                     </div>
-                    {isOnLeave && <p className="lock-notice">⚠️ Actions disabled while on leave.</p>}
+                    {(isOnLeave || isHoliday || isSaturday) && (
+                        <p className="lock-notice">⚠️ Actions disabled for scheduled off-days/leave.</p>
+                    )}
                 </section>
             </main>
 
@@ -276,7 +310,6 @@ const AttendanceRecords = () => {
                 <div className="log-header">
                     <h3>Monthly Attendance Logs</h3>
                 </div>
-                
                 <div className="table-responsive">
                     <table className="history-table">
                         <thead>
@@ -292,7 +325,7 @@ const AttendanceRecords = () => {
                                 <tr key={row.attendanceId}>
                                     <td><strong>{row.attendanceDate}</strong></td>
                                     <td>{row.checkInTime ? new Date(row.checkInTime).toLocaleTimeString() : "--"}</td>
-                                    <td>{row.checkOutTime ? new Date(row.checkOutTime).toLocaleTimeString() : <span className="active-badge">On Shift</span>}</td>
+                                    <td>{row.checkOutTime ? new Date(row.checkOutTime).toLocaleTimeString() : row.checkInTime ? <span className="active-badge">On Shift</span> : "--"}</td>
                                     <td><span className={`tag-status status-${row.status?.toLowerCase()}`}>{row.status}</span></td>
                                 </tr>
                             ))}

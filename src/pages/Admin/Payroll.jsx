@@ -18,35 +18,76 @@ const HistoryModal = ({ isOpen, onClose, history, employeeName }) => {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
   const [selectedMonth, setSelectedMonth] = useState(MONTHS[new Date().getMonth()]);
 
+  // Sync filters to the most recent record when history data changes
+  useEffect(() => {
+    if (history && history.length > 0) {
+      // Find the first valid record to set the initial view
+      const latest = history[0]; 
+      const dateVal = latest.payPeriodStart || latest.payDate;
+      if (dateVal) {
+        if (Array.isArray(dateVal)) {
+          setSelectedYear(String(dateVal[0]));
+          setSelectedMonth(MONTHS[dateVal[1] - 1]);
+        } else {
+          const d = new Date(dateVal);
+          if (!isNaN(d.getTime())) {
+            setSelectedYear(String(d.getFullYear()));
+            setSelectedMonth(MONTHS[d.getMonth()]);
+          }
+        }
+      }
+    }
+  }, [history, isOpen]);
+
   const availableYears = useMemo(() => {
     const years = [];
-    for (let y = new Date().getFullYear(); y >= 2020; y--) years.push(y.toString());
+    const currentYear = new Date().getFullYear();
+    for (let y = currentYear + 1; y >= 2020; y--) years.push(y.toString());
     return years;
   }, []);
 
-  if (!isOpen) return null; 
+  if (!isOpen) return null;
 
   const filteredHistory = (Array.isArray(history) ? history : []).filter(h => {
+    // Priority: payPeriodStart is what matches your DB screenshot (2026-02-01)
     const dateVal = h.payPeriodStart || h.payDate;
     if (!dateVal) return false;
 
     let yearFromRecord, monthIdxFromRecord;
-
+    
+    // CASE 1: Java LocalDate Array format [2026, 2, 1]
     if (Array.isArray(dateVal)) {
       yearFromRecord = String(dateVal[0]);
-      monthIdxFromRecord = dateVal[1] - 1; 
-    } else {
+      monthIdxFromRecord = dateVal[1] - 1;
+    } 
+    // CASE 2: ISO String format "2026-02-01" (Matches your MySQL Screenshot)
+    else if (typeof dateVal === 'string' && dateVal.includes('-')) {
+      const parts = dateVal.split('-'); // ["2026", "02", "01"]
+      yearFromRecord = parts[0];
+      // Use parseInt to handle leading zeros (02 -> 2)
+      monthIdxFromRecord = parseInt(parts[1], 10) - 1;
+    }
+    // CASE 3: Fallback for Date objects or other formats
+    else {
       const dateObj = new Date(dateVal);
+      if (isNaN(dateObj.getTime())) return false;
       yearFromRecord = String(dateObj.getFullYear());
       monthIdxFromRecord = dateObj.getMonth();
     }
 
+    // DEBUG: Uncomment the line below to see why records are being hidden in the console
+    // console.log(`Comparing Record (${MONTHS[monthIdxFromRecord]} ${yearFromRecord}) vs Selected (${selectedMonth} ${selectedYear})`);
+
     return yearFromRecord === selectedYear && MONTHS[monthIdxFromRecord] === selectedMonth;
-  });
+});
 
   const formatLocalDate = (dateVal) => {
-    if (Array.isArray(dateVal)) return `${dateVal[0]}-${String(dateVal[1]).padStart(2, '0')}-${String(dateVal[2]).padStart(2, '0')}`;
-    return dateVal;
+    if (!dateVal) return "N/A";
+    if (Array.isArray(dateVal)) {
+        return `${dateVal[0]}-${String(dateVal[1]).padStart(2, '0')}-${String(dateVal[2]).padStart(2, '0')}`;
+    }
+    const d = new Date(dateVal);
+    return isNaN(d.getTime()) ? "Invalid Date" : d.toLocaleDateString();
   };
 
   return (
@@ -56,7 +97,7 @@ const HistoryModal = ({ isOpen, onClose, history, employeeName }) => {
         <div className="modal-header">
           <div>
             <h2 className="header-title">Payroll Audit: {employeeName}</h2>
-            <p className="header-subtitle">Viewing records for {selectedMonth} {selectedYear}</p>
+            <p className="header-subtitle">Records for {selectedMonth} {selectedYear}</p>
           </div>
           <div className="header-controls">
             <select className="filter-select-mini" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}>
@@ -73,7 +114,7 @@ const HistoryModal = ({ isOpen, onClose, history, employeeName }) => {
               <tr>
                 <th>Period Start</th>
                 <th>Gross Salary</th>
-                <th>SSF (11%)</th>
+                <th>SSF</th>
                 <th>Tax</th>
                 <th>Net Paid</th>
                 <th>Status</th>
@@ -92,7 +133,11 @@ const HistoryModal = ({ isOpen, onClose, history, employeeName }) => {
                   </td>
                 </tr>
               )) : (
-                <tr><td colSpan="6" className="empty-state">No records found.</td></tr>
+                <tr>
+                  <td colSpan="6" className="empty-state" style={{padding: '40px', textAlign: 'center', color: '#64748b'}}>
+                    No records found for {selectedMonth} {selectedYear}.
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>
@@ -125,31 +170,34 @@ const PayrollManagement = () => {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
   const [selectedStatus, setSelectedStatus] = useState("All");
   
-  // PAGINATION STATE
   const [currentPage, setCurrentPage] = useState(1);
   const recordsPerPage = 10;
+
+  const getMonthNumber = (monthName) => MONTHS.indexOf(monthName) + 1;
+  const getPaddedMonth = (monthName) => String(getMonthNumber(monthName)).padStart(2, '0');
 
   const isCurrentMonth = useMemo(() => {
     const now = new Date();
     return selectedMonth === MONTHS[now.getMonth()] && selectedYear === now.getFullYear().toString();
   }, [selectedMonth, selectedYear]);
 
-  const getMonthNumber = (monthName) => MONTHS.indexOf(monthName) + 1;
-  const getPaddedMonth = (monthName) => String(getMonthNumber(monthName)).padStart(2, '0');
-
   const fetchData = async () => {
     try {
       setLoading(true);
       const monthInt = getMonthNumber(selectedMonth);
       const yearInt = parseInt(selectedYear);
-      const mRes = await api.get("/payment-methods");
+      
+      const [mRes, ccRes] = await Promise.all([
+        api.get("/payment-methods"),
+        api.get("/payrolls/command-center", { params: { month: monthInt, year: yearInt } })
+      ]);
+
       setPaymentMethods(mRes.data || []);
       if (mRes.data?.length > 0 && !globalPaymentMethod) setGlobalPaymentMethod(mRes.data[0].paymentMethodId);
-
-      const ccRes = await api.get("/payrolls/command-center", { params: { month: monthInt, year: yearInt } });
+      
       setPayrolls(ccRes.data?.employeeRows || ccRes.data || []);
-      setCurrentPage(1); // Reset to page 1 on new data fetch
     } catch (err) {
+      console.error("Fetch error", err);
       setPayrolls([]);
     } finally {
       setLoading(false);
@@ -165,7 +213,7 @@ const PayrollManagement = () => {
       const matchesSearch = name.includes(term) || String(e.empId).includes(term);
       const matchesStatus = selectedStatus === "All" || e.status === selectedStatus || (selectedStatus === "PENDING" && e.status === "PENDING_PAYMENT");
       return matchesSearch && matchesStatus;
-    }).sort((a, b) => b.empId - a.empId); // ID DESCENDING ORDER
+    }).sort((a, b) => b.empId - a.empId);
   }, [payrolls, search, selectedStatus]);
 
   const stats = useMemo(() => ({
@@ -173,7 +221,6 @@ const PayrollManagement = () => {
     paid: filteredEmployees.filter(e => e.status === "PAID").length
   }), [filteredEmployees]);
 
-  // PAGINATION CALCULATIONS
   const totalPages = Math.ceil(filteredEmployees.length / recordsPerPage);
   const currentRecords = useMemo(() => {
     const indexOfLastRecord = currentPage * recordsPerPage;
@@ -186,10 +233,26 @@ const PayrollManagement = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const renderPageNumbers = () => {
+    const pages = [];
+    const delta = 1;
+    for (let i = 1; i <= totalPages; i++) {
+      if (i === 1 || i === totalPages || (i >= currentPage - delta && i <= currentPage + delta)) {
+        pages.push(
+          <button key={i} className={`page-btn ${currentPage === i ? 'active' : ''}`} onClick={() => handlePageChange(i)}>
+            {i}
+          </button>
+        );
+      } else if (i === currentPage - delta - 1 || i === currentPage + delta + 1) {
+        pages.push(<span key={i} className="pagination-ellipsis">...</span>);
+      }
+    }
+    return pages;
+  };
+
   const handleInputChange = (empId, field, val) => {
     const numericValue = parseFloat(val);
     const safeValue = isNaN(numericValue) ? 0 : Math.max(0, numericValue);
-    
     setProcessingInputs(prev => ({ 
         ...prev, 
         [empId]: { ...(prev[empId] || {}), [field]: safeValue } 
@@ -201,31 +264,32 @@ const PayrollManagement = () => {
     if (!globalPaymentMethod) return alert("Select a payment method.");
     
     const inputs = processingInputs[emp.empId] || {};
-    const targetPath = `${getPayrollHomePath()}/adjust`;
-    
     const finalPayload = {
-      employee: { 
-        empId: emp.empId, 
-        fullName: emp.fullName, 
-        basicSalary: emp.basicSalary 
-      },
+      empId: emp.empId,
+      fullName: emp.fullName,
+      basicSalary: emp.basicSalary,
       month: selectedMonth,
       year: selectedYear,
-      initialInputs: {
-        earnedSalary: parseFloat(inputs.earnedSalary ?? emp.earnedSalary ?? 0),
-        festivalBonus: parseFloat(inputs.festivalBonus ?? emp.festivalBonus ?? 0),
-        bonuses: parseFloat(inputs.otherBonus ?? emp.otherBonuses ?? 0),
-        paymentMethodId: globalPaymentMethod,
-        payPeriodStart: `${selectedYear}-${getPaddedMonth(selectedMonth)}-01`
-      }
+      isAdmin: isAdmin,
+      earnedSalary: parseFloat(inputs.earnedSalary ?? emp.earnedSalary ?? 0),
+      ssfContribution: parseFloat(inputs.ssfContribution ?? emp.ssfContribution ?? 0),
+      houseRentAllowance: parseFloat(inputs.houseRentAllowance ?? emp.houseRentAllowance ?? 0),
+      dearnessAllowance: parseFloat(inputs.dearnessAllowance ?? emp.dearnessAllowance ?? 0), 
+      extraComponents: emp.extraComponents || [], 
+      paymentMethodId: globalPaymentMethod,
+      payPeriodStart: `${selectedYear}-${getPaddedMonth(selectedMonth)}-01`
     };
-    
-    navigate(targetPath, { state: finalPayload });
+    navigate(`${getPayrollHomePath()}/adjust`, { state: finalPayload });
   };
 
   const handleVoid = async (payrollId) => {
-    if (window.confirm("Void this record?")) {
-      try { await voidPayrollRecord(payrollId); fetchData(); } catch { alert("Void failed."); }
+    if (window.confirm("Void this record? This action cannot be undone.")) {
+      try { 
+        await voidPayrollRecord(payrollId); 
+        fetchData(); 
+      } catch { 
+        alert("Void failed. Check if record is already voided."); 
+      }
     }
   };
 
@@ -234,19 +298,25 @@ const PayrollManagement = () => {
     setIsEmailing(payrollId);
     try {
       const response = await emailPayslip(payrollId);
-      alert(response?.data?.message || "Email sent.");
-    } catch (err) {
-      alert("Email failed.");
-    } finally { setIsEmailing(null); }
+      alert(response?.data?.message || "Email sent successfully.");
+    } catch (err) { 
+        alert("Email failed to send."); 
+    } finally { 
+        setIsEmailing(null); 
+    }
   };
 
   const handleViewHistory = async (empId, fullName) => {
     try {
       const res = await getEmployeeHistory(empId);
+      // Ensure we are setting an array even if the backend returns null
       setHistoryData(Array.isArray(res.data) ? res.data : []);
       setSelectedEmpName(fullName);
       setIsHistoryOpen(true);
-    } catch (err) { console.error(err); }
+    } catch (err) { 
+        console.error(err); 
+        alert("Could not load employee history."); 
+    }
   };
 
   if (loading) return <div className="loading-spinner">Syncing Command Center...</div>;
@@ -256,7 +326,7 @@ const PayrollManagement = () => {
       <div className="payroll-header-section">
         <h1 className="header-title">Payroll Command</h1>
         <div className="payroll-filter-bar">
-          <input className="filter-search-small" placeholder="Search..." value={search} onChange={(e)=>{setSearch(e.target.value); setCurrentPage(1);}} />
+          <input className="filter-search-small" placeholder="Search Employee..." value={search} onChange={(e)=>{setSearch(e.target.value); setCurrentPage(1);}} />
           <select className="filter-select-mini status-select" value={selectedStatus} onChange={(e) => {setSelectedStatus(e.target.value); setCurrentPage(1);}}>
             <option value="All">All Statuses</option>
             <option value="PAID">Paid</option>
@@ -285,11 +355,12 @@ const PayrollManagement = () => {
         <table className="payroll-table">
           <thead>
             <tr>
-              <th style={{width: '20%'}}>Employee</th>
-              <th style={{width: '15%'}}>Earned Salary</th>
-              <th style={{width: '15%'}}>Festival Bonuses</th>
-              <th style={{width: '15%'}}>Other Bonus</th>
-              <th style={{width: '12%'}}>Status</th>
+              <th style={{width: '18%'}}>Employee</th>
+              <th style={{width: '13%'}}>Earned Salary</th>
+              <th style={{width: '12%'}}>SSF (11%)</th>
+              <th style={{width: '12%'}}>Rent Allowance</th>
+              <th style={{width: '12%'}}>Dearness</th>
+              <th style={{width: '10%'}}>Status</th>
               <th style={{textAlign: 'right', width: '23%'}}>Actions</th>
             </tr>
           </thead>
@@ -302,51 +373,39 @@ const PayrollManagement = () => {
               return (
                 <tr key={emp.empId}>
                   <td>
-                    <div className="emp-info">
-                        <strong>{emp.fullName}</strong>
-                        <div className="emp-id-sub">ID: {emp.empId}</div>
-                    </div>
+                    <div className="emp-info"><strong>{emp.fullName}</strong><div className="emp-id-sub">ID: {emp.empId}</div></div>
                   </td>
                   <td>
                     {isInputLocked ? <span className="locked-value">Rs. {emp.earnedSalary?.toLocaleString()}</span> :
                     <div className="editable-salary-cell">
                         <span className="currency-prefix">Rs.</span>
-                        <input type="number" className="salary-input-edit" 
-                          min="0"
-                          value={inputs.earnedSalary ?? emp.earnedSalary ?? 0} 
+                        <input type="number" className="salary-input-edit" value={inputs.earnedSalary ?? emp.earnedSalary ?? 0} 
                           onChange={(e)=>handleInputChange(emp.empId, 'earnedSalary', e.target.value)} />
                     </div>}
                   </td>
                   <td>
-                    {isInputLocked ? <span className="locked-value">{emp.festivalBonus?.toLocaleString() || 0}</span> : 
-                    <input type="number" className="bonus-input-small" 
-                      min="0"
-                      value={inputs.festivalBonus ?? emp.festivalBonus ?? 0} 
-                      onChange={(e)=>handleInputChange(emp.empId, 'festivalBonus', e.target.value)}/>}
+                    {isInputLocked ? <span className="locked-value">{emp.ssfContribution?.toLocaleString() || 0}</span> : 
+                    <input type="number" className="bonus-input-small" value={inputs.ssfContribution ?? emp.ssfContribution ?? 0} 
+                      onChange={(e)=>handleInputChange(emp.empId, 'ssfContribution', e.target.value)}/>}
                   </td>
                   <td>
-                    {isInputLocked ? <span className="locked-value">{emp.otherBonuses?.toLocaleString() || 0}</span> : 
-                    <input type="number" className="bonus-input-small" 
-                      min="0"
-                      value={inputs.otherBonus ?? emp.otherBonuses ?? 0} 
-                      onChange={(e)=>handleInputChange(emp.empId, 'otherBonus', e.target.value)}/>}
+                    {isInputLocked ? <span className="locked-value">{emp.houseRentAllowance?.toLocaleString() || 0}</span> : 
+                    <input type="number" className="bonus-input-small" value={inputs.houseRentAllowance ?? emp.houseRentAllowance ?? 0} 
+                      onChange={(e)=>handleInputChange(emp.empId, 'houseRentAllowance', e.target.value)}/>}
                   </td>
                   <td>
-                    <span className={`status-badge status-${emp.status.toLowerCase().replace('_', '-')}`}>
-                        {emp.status.replace('_', ' ')}
-                    </span>
+                    {isInputLocked ? <span className="locked-value">{emp.dearnessAllowance?.toLocaleString() || 0}</span> : 
+                    <input type="number" className="bonus-input-small" value={inputs.dearnessAllowance ?? emp.dearnessAllowance ?? 0} 
+                      onChange={(e)=>handleInputChange(emp.empId, 'dearnessAllowance', e.target.value)}/>}
                   </td>
+                  <td><span className={`status-badge status-${emp.status.toLowerCase().replace('_', '-')}`}>{emp.status.replace('_', ' ')}</span></td>
                   <td className="actions-cell">
                     {isCurrentMonth && (emp.status === "PENDING_PAYMENT" || emp.status === "READY") && (
-                       <button className="btn-icon btn-pdf" onClick={()=>handleActionRun(emp)}>
-                        {emp.status === "PENDING_PAYMENT" ? "Resume" : "Run"}
-                       </button>
+                       <button className="btn-icon btn-pdf" onClick={()=>handleActionRun(emp)}>{emp.status === "PENDING_PAYMENT" ? "Resume" : "Run"}</button>
                     )}
                     {isPaid && (
                       <>
-                        <button className="btn-icon btn-email" disabled={isEmailing === emp.payrollId} onClick={() => handleEmailAction(emp.payrollId)}>
-                          {isEmailing === emp.payrollId ? "..." : "Email"}
-                        </button>
+                        <button className="btn-icon btn-email" disabled={isEmailing === emp.payrollId} onClick={() => handleEmailAction(emp.payrollId)}>{isEmailing === emp.payrollId ? "..." : "Email"}</button>
                         {isAdmin && <button className="btn-icon btn-void" onClick={()=>handleVoid(emp.payrollId)}>Void</button>}
                       </>
                     )}
@@ -358,109 +417,19 @@ const PayrollManagement = () => {
           </tbody>
         </table>
 
-        {/* PROFESSIONAL PAGINATION UI */}
-        {totalPages > 1 && (
-          <div className="pagination-container">
-            <div className="pagination-info">
-              Showing {((currentPage - 1) * recordsPerPage) + 1} to {Math.min(currentPage * recordsPerPage, filteredEmployees.length)} of {filteredEmployees.length} records
-            </div>
-            <div className="pagination-controls">
-              <button 
-                className="pagination-btn" 
-                disabled={currentPage === 1} 
-                onClick={() => handlePageChange(currentPage - 1)}
-              >
-                &laquo; Previous
-              </button>
-              
-              {[...Array(totalPages)].map((_, i) => {
-                const pageNum = i + 1;
-                // Logic to show only a subset of pages if 1000s of records exist
-                if (
-                  pageNum === 1 || 
-                  pageNum === totalPages || 
-                  (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
-                ) {
-                  return (
-                    <button 
-                      key={pageNum} 
-                      className={`pagination-btn ${currentPage === pageNum ? 'active' : ''}`}
-                      onClick={() => handlePageChange(pageNum)}
-                    >
-                      {pageNum}
-                    </button>
-                  );
-                } else if (pageNum === currentPage - 2 || pageNum === currentPage + 2) {
-                  return <span key={pageNum} className="pagination-ellipsis">...</span>;
-                }
-                return null;
-              })}
-
-              <button 
-                className="pagination-btn" 
-                disabled={currentPage === totalPages} 
-                onClick={() => handlePageChange(currentPage + 1)}
-              >
-                Next &raquo;
-              </button>
+        {totalPages > 0 && (
+          <div className="pagination-footer">
+            <div className="pagination-info">Page <strong>{currentPage}</strong> of <strong>{totalPages}</strong></div>
+            <div className="pagination-buttons">
+              <button className="page-btn" disabled={currentPage === 1} onClick={() => handlePageChange(currentPage - 1)}>&laquo; Prev</button>
+              {renderPageNumbers()}
+              <button className="page-btn" disabled={currentPage === totalPages} onClick={() => handlePageChange(currentPage + 1)}>Next &raquo;</button>
             </div>
           </div>
         )}
       </div>
 
-      <HistoryModal 
-        isOpen={isHistoryOpen} 
-        onClose={()=>setIsHistoryOpen(false)} 
-        history={historyData} 
-        employeeName={selectedEmpName} 
-      />
-
-      <style>{`
-        .pagination-container {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 1.5rem;
-          border-top: 1px solid #edf2f7;
-          background: #fff;
-        }
-        .pagination-info {
-          font-size: 0.875rem;
-          color: #718096;
-        }
-        .pagination-controls {
-          display: flex;
-          gap: 0.25rem;
-          align-items: center;
-        }
-        .pagination-btn {
-          padding: 0.5rem 0.75rem;
-          border: 1px solid #e2e8f0;
-          background: #fff;
-          color: #4a5568;
-          border-radius: 0.375rem;
-          cursor: pointer;
-          font-size: 0.875rem;
-          transition: all 0.2s;
-        }
-        .pagination-btn:hover:not(:disabled) {
-          background: #f7fafc;
-          border-color: #cbd5e0;
-        }
-        .pagination-btn.active {
-          background: #3182ce;
-          color: white;
-          border-color: #3182ce;
-        }
-        .pagination-btn:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-        .pagination-ellipsis {
-          color: #a0aec0;
-          padding: 0 0.5rem;
-        }
-      `}</style>
+      <HistoryModal isOpen={isHistoryOpen} onClose={()=>setIsHistoryOpen(false)} history={historyData} employeeName={selectedEmpName} />
     </div>
   );
 };

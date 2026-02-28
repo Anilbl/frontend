@@ -35,7 +35,7 @@ export default function Report() {
   const [year, setYear] = useState(currentYear);
   const [monthName, setMonthName] = useState(months[new Date().getMonth()]);
   const [stats, setStats] = useState({ totalGross: 0, totalNet: 0, totalTax: 0, paidCount: 0, departments: [] });
-  const [monthlyPayrollData, setMonthlyPayrollData] = useState(new Array(12).fill(0));
+  const [monthlyPaidData, setMonthlyPaidData] = useState(new Array(12).fill(0));
 
   useEffect(() => {
     fetchReportData();
@@ -51,11 +51,11 @@ export default function Report() {
 
       setStats(summaryRes.data);
       
-      const fullYearData = months.map(m => {
+      const fullYearPaidData = months.map(m => {
         const found = chartRes.data.find(d => d.month === m);
-        return found ? found.amount : 0;
+        return found ? found.paidAmount || found.amount : 0; 
       });
-      setMonthlyPayrollData(fullYearData);
+      setMonthlyPaidData(fullYearPaidData);
     } catch (error) {
       console.error("Fetch error:", error);
     }
@@ -72,7 +72,7 @@ export default function Report() {
     maintainAspectRatio: false,
     layout: {
       padding: {
-        top: 30, // Space specifically for the datalabels above the bars
+        top: 35, // Increased padding to ensure 3-decimal labels aren't cut off
         bottom: 10
       }
     },
@@ -80,19 +80,21 @@ export default function Report() {
       legend: { display: false },
       datalabels: {
         display: true,
-        color: "#1e293b", // Darker slate for better visibility
+        color: "#1e293b",
         anchor: "end",
         align: "top",
         offset: 5,
         font: { 
           weight: "700", 
-          size: 11,
+          size: 10, // Adjusted for longer strings
           family: "'Inter', sans-serif"
         },
         formatter: (value) => {
-          if (value === 0) return "";
-          // Format as '41.4k' or similar for the top of the bar
-          return value >= 1000 ? (value / 1000).toFixed(1) + 'k' : value;
+          if (!value || value === 0) return "";
+          // Convert to 'k' and truncate to 3 decimal places without rounding
+          const kValue = value / 1000;
+          const truncated = (Math.trunc(kValue * 1000) / 1000).toFixed(3);
+          return `${truncated}k`;
         }
       },
       tooltip: {
@@ -101,7 +103,7 @@ export default function Report() {
         titleFont: { size: 14 },
         bodyFont: { size: 13 },
         callbacks: {
-          label: (context) => ` Total: ${formatCurrency(context.raw)}`
+          label: (context) => ` Total Paid: ${formatCurrency(context.raw)}`
         }
       }
     },
@@ -115,7 +117,7 @@ export default function Report() {
       },
       y: {
         beginAtZero: true,
-        grace: '15%', // CRITICAL: Adds 15% extra height to the Y-axis so labels don't cut off
+        grace: '20%', // More space at the top for labels
         grid: { 
           color: '#f1f5f9',
           drawTicks: false
@@ -124,7 +126,11 @@ export default function Report() {
           color: '#94a3b8',
           font: { size: 10 },
           padding: 10,
-          callback: (value) => value >= 1000 ? (value / 1000) + 'k' : value
+          callback: (value) => {
+            const kValue = value / 1000;
+            // Truncate to 3 decimal places for axis consistency
+            return (Math.trunc(kValue * 1000) / 1000).toFixed(3) + 'k';
+          }
         }
       }
     }
@@ -156,25 +162,26 @@ export default function Report() {
 
       <div className="stats-ribbon">
         <StatItem title="Global Paid Count" value={stats.paidCount} icon="👥" color="#3b82f6" />
-        <StatItem title="Total Gross Payroll" value={formatCurrency(stats.totalGross)} icon="💰" color="#10b981" />
+        <StatItem title="Total Gross Paid" value={formatCurrency(stats.totalGross)} icon="💰" color="#10b981" />
         <StatItem title="Statutory Tax" value={formatCurrency(stats.totalTax)} icon="🏛️" color="#f59e0b" />
         <StatItem title="Net Disbursement" value={formatCurrency(stats.totalNet)} icon="🧾" color="#8b5cf6" />
       </div>
 
       <div className="main-content-grid">
         <div className="content-card chart-card">
-          <div className="card-header"><h3>Annual Expenditure Trend ({year})</h3></div>
+          <div className="card-header"><h3>Annual Paid Expenditure ({year})</h3></div>
           <div className="chart-wrapper">
             <Bar 
               options={chartOptions}
               data={{
                 labels: months,
                 datasets: [{
-                  data: monthlyPayrollData,
-                  backgroundColor: "rgba(59, 130, 246, 0.8)", // Matching blue from your SS
-                  hoverBackgroundColor: "#2563eb",
+                  label: 'Paid Amount',
+                  data: monthlyPaidData,
+                  backgroundColor: "rgba(16, 185, 129, 0.8)",
+                  hoverBackgroundColor: "#059669",
                   borderRadius: 6,
-                  barPercentage: 0.6, // Slimmer bars for a more professional look
+                  barPercentage: 0.6,
                   categoryPercentage: 0.8
                 }]
               }} 

@@ -36,7 +36,7 @@ const HolidaySettings = () => {
     const [modalConfig, setModalConfig] = useState({
         isOpen: false,
         title: "",
-        type: "input", // "input" or "confirm"
+        type: "input", 
         value: "",
         onConfirm: () => {},
         confirmLabel: "Okay"
@@ -53,7 +53,8 @@ const HolidaySettings = () => {
 
         try {
             setLoading(true);
-            const res = await api.get(`/holidays/filter`, { params: { start, end } });
+            // Matches Controller @GetMapping: /api/holidays
+            const res = await api.get(`/holidays`, { params: { start, end } });
             const sortedData = res.data.sort((a, b) => new Date(a.holidayDate) - new Date(b.holidayDate));
             setHolidays(sortedData);
             setCurrentPage(1); 
@@ -68,7 +69,6 @@ const HolidaySettings = () => {
         fetchSavedHolidays(viewDate);
     }, [viewDate, fetchSavedHolidays]);
 
-    // Replacement for window.confirm
     const handleDelete = (id) => {
         setModalConfig({
             isOpen: true,
@@ -86,18 +86,18 @@ const HolidaySettings = () => {
         });
     };
 
-    // Replacement for window.prompt (Edit)
     const handleEdit = (holiday) => {
         setModalConfig({
             isOpen: true,
-            title: "Update Description",
+            title: "Update Holiday Name",
             type: "input",
-            value: holiday.description,
+            value: holiday.holidayName,
             confirmLabel: "Update",
-            onConfirm: async (newDesc) => {
-                if (newDesc && newDesc !== holiday.description) {
+            onConfirm: async (newName) => {
+                if (newName && newName !== holiday.holidayName) {
                     try {
-                        await api.put(`/holidays/${holiday.id}`, { ...holiday, description: newDesc });
+                        // Backend Entity uses holidayName
+                        await api.put(`/holidays/${holiday.id}`, { ...holiday, holidayName: newName });
                         fetchSavedHolidays(viewDate);
                         closeHeaderModal();
                     } catch (err) { alert("Update failed."); }
@@ -106,10 +106,10 @@ const HolidaySettings = () => {
         });
     };
 
-    // Replacement for window.prompt (New Date Click)
     const handleDateClick = (clickedDate) => {
         const checkDate = new Date(clickedDate).setHours(0,0,0,0);
         const todayNoTime = new Date().setHours(0,0,0,0);
+        const clickedDateStr = clickedDate.toLocaleDateString('en-CA');
 
         if (checkDate < todayNoTime) {
             alert("Cannot modify past dates.");
@@ -118,22 +118,30 @@ const HolidaySettings = () => {
 
         if (isRangeMode) {
             if (!rangeStart) {
+                if (clickedDate.getDay() === 6) {
+                    alert("Saturdays cannot be the start of a holiday range.");
+                    return;
+                }
                 setRangeStart(clickedDate);
             } else {
+                const start = rangeStart < clickedDate ? rangeStart : clickedDate;
+                const end = rangeStart < clickedDate ? clickedDate : rangeStart;
+                
                 setModalConfig({
                     isOpen: true,
-                    title: "Add Range Description",
+                    title: `Add Holiday Range`,
                     type: "input",
                     value: "",
                     confirmLabel: "Save Range",
-                    onConfirm: async (desc) => {
-                        if (desc) {
+                    onConfirm: async (holidayName) => {
+                        if (holidayName) {
                             try {
+                                // Uses your existing /bulk endpoint with RequestParams
                                 await api.post('/holidays/bulk', null, {
                                     params: {
-                                        start: rangeStart.toLocaleDateString('en-CA'),
-                                        end: clickedDate.toLocaleDateString('en-CA'),
-                                        description: desc,
+                                        start: start.toLocaleDateString('en-CA'),
+                                        end: end.toLocaleDateString('en-CA'),
+                                        description: holidayName, // Maps to holidayName in service
                                         type: "NATIONAL"
                                     }
                                 });
@@ -147,18 +155,29 @@ const HolidaySettings = () => {
                 });
             }
         } else {
+            // SINGLE DATE LOGIC
+            if (clickedDate.getDay() === 6) {
+                alert("Saturdays are already marked as weekends.");
+                return;
+            }
+
+            if (holidays.some(h => h.holidayDate === clickedDateStr)) {
+                alert("This date is already a registered holiday.");
+                return;
+            }
+
             setModalConfig({
                 isOpen: true,
-                title: `Holiday for ${clickedDate.toLocaleDateString('en-CA')}`,
+                title: `New Holiday: ${clickedDateStr}`,
                 type: "input",
                 value: "",
                 confirmLabel: "Add Holiday",
-                onConfirm: async (desc) => {
-                    if (desc) {
+                onConfirm: async (holidayName) => {
+                    if (holidayName) {
                         try {
                             await api.post('/holidays', {
-                                holidayDate: clickedDate.toLocaleDateString('en-CA'),
-                                description: desc,
+                                holidayDate: clickedDateStr,
+                                holidayName: holidayName,
                                 holidayType: "NATIONAL"
                             });
                             fetchSavedHolidays(viewDate);
@@ -171,8 +190,7 @@ const HolidaySettings = () => {
     };
 
     const indexOfLastRecord = currentPage * recordsPerPage;
-    const indexOfFirstRecord = indexOfLastRecord - recordsPerPage;
-    const currentRecords = holidays.slice(indexOfFirstRecord, indexOfLastRecord);
+    const currentRecords = holidays.slice(indexOfLastRecord - recordsPerPage, indexOfLastRecord);
     const totalPages = Math.ceil(holidays.length / recordsPerPage);
 
     const tileClassName = ({ date, view }) => {
@@ -183,6 +201,7 @@ const HolidaySettings = () => {
             let classes = isPast ? 'tile-past ' : '';
             if (found) classes += (found.holidayType === 'URGENT' ? 'tile-urgent ' : 'tile-holiday ');
             if (date.getDay() === 6) classes += 'saturday ';
+            if (rangeStart && dateStr === rangeStart.toLocaleDateString('en-CA')) classes += 'range-start-highlight ';
             return classes.trim();
         }
     };
@@ -193,7 +212,7 @@ const HolidaySettings = () => {
                 <h2>Nepal Holiday Manager</h2>
                 <div className="actions">
                     <button className={`range-btn ${isRangeMode ? 'active' : ''}`} onClick={() => { setIsRangeMode(!isRangeMode); setRangeStart(null); }}>
-                        {isRangeMode ? "Cancel Range" : "➕ Add Multiple Days"}
+                        {isRangeMode ? "Cancel Range" : "➕ Add Range"}
                     </button>
                     <button className="sync-button" onClick={() => fetchSavedHolidays(viewDate)}>🔄 Refresh</button>
                 </div>
@@ -228,7 +247,7 @@ const HolidaySettings = () => {
                             <thead>
                                 <tr>
                                     <th>Date</th>
-                                    <th>Description</th>
+                                    <th>Holiday Name</th>
                                     <th className="center-header">Actions</th>
                                 </tr>
                             </thead>
@@ -236,7 +255,7 @@ const HolidaySettings = () => {
                                 {currentRecords.map(h => (
                                     <tr key={h.id}>
                                         <td className="date-cell">{h.holidayDate}</td>
-                                        <td>{h.description}</td>
+                                        <td>{h.holidayName}</td>
                                         <td className="action-cell">
                                             <button className="action-btn edit-btn" onClick={() => handleEdit(h)}>
                                                 <EditIcon />
@@ -266,12 +285,10 @@ const HolidaySettings = () => {
                 </div>
             </div>
 
-            {/* --- CUSTOM MODAL UI --- */}
             {modalConfig.isOpen && (
                 <div className="modal-overlay">
                     <div className="custom-modal">
                         <h3>{modalConfig.title}</h3>
-                        
                         {modalConfig.type === "input" ? (
                             <input 
                                 type="text" 
@@ -279,20 +296,14 @@ const HolidaySettings = () => {
                                 autoFocus
                                 value={modalConfig.value}
                                 onChange={(e) => setModalConfig({ ...modalConfig, value: e.target.value })}
-                                placeholder="Enter holiday name..."
+                                placeholder="Enter Holiday Name (e.g. Dashain)..."
                             />
                         ) : (
                             <p className="modal-text">{modalConfig.value}</p>
                         )}
-
                         <div className="modal-footer">
                             <button className="btn-cancel" onClick={closeHeaderModal}>Cancel</button>
-                            <button 
-                                className="btn-okay" 
-                                onClick={() => modalConfig.onConfirm(modalConfig.value)}
-                            >
-                                {modalConfig.confirmLabel}
-                            </button>
+                            <button className="btn-okay" onClick={() => modalConfig.onConfirm(modalConfig.value)}>{modalConfig.confirmLabel}</button>
                         </div>
                     </div>
                 </div>

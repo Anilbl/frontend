@@ -4,7 +4,7 @@ import { AiFillEye, AiFillEyeInvisible } from "react-icons/ai";
 import api from "../../api/axios"; 
 import './login.css';
 
-const Landing = ({ setUser }) => {
+const Landing = ({ setUser, currentUser }) => {
     const [credentials, setCredentials] = useState({ username: '', password: '' });
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
@@ -13,15 +13,24 @@ const Landing = ({ setUser }) => {
     const navigate = useNavigate();
     const location = useLocation();
 
+    // Check if there's a specific page the user was trying to reach before being redirected here
+    const from = location.state?.from?.pathname;
+
     useEffect(() => {
-        localStorage.removeItem("user_session");
-        if (setUser) setUser(null);
+        // If user is already logged in and hits the landing page, 
+        // redirect them to their dashboard automatically.
+        if (currentUser && currentUser.token) {
+            const userRole = (typeof currentUser.role === 'object' ? currentUser.role.roleName : currentUser.role || "").toUpperCase();
+            const target = from || (userRole.includes('ADMIN') ? '/admin/dashboard' : userRole.includes('ACCOUNTANT') ? '/accountant/dashboard' : '/employee/dashboard');
+            navigate(target, { replace: true });
+        }
 
         const params = new URLSearchParams(location.search);
         if (params.get("expired")) {
             setError("Your session has expired. Please log in again.");
         }
-    }, [location, setUser]);
+        // localStorage.removeItem("user_session") REMOVED: Don't kill session on mount
+    }, [location, currentUser, navigate, from]);
 
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -38,27 +47,21 @@ const Landing = ({ setUser }) => {
                 const userData = response.data;
                 const { token, role, isFirstLogin, email } = userData;
                 
-                // 1. Save to localStorage and App State
                 localStorage.setItem("user_session", JSON.stringify(userData));
                 if (setUser) setUser(userData);
 
-                // 2. PRIORITY CHECK: If first login, redirect to setup
-                // We pass the email in 'state' because InitialSetup.jsx requires it
                 if (isFirstLogin) {
                     navigate('/initial-setup', { state: { email: email } });
-                    return; // Stop execution here
+                    return;
                 }
 
-                // 3. Normal Role-based navigation
+                // Redirect to the intended page (Deep Linking) or the default dashboard
                 const userRole = (role.roleName || role).toUpperCase();
-                
-                if (userRole.includes('ADMIN')) {
-                    navigate('/admin/dashboard');
-                } else if (userRole.includes('ACCOUNTANT')) {
-                    navigate('/accountant/dashboard');
-                } else {
-                    navigate('/employee/dashboard');
-                }
+                let defaultPath = '/employee/dashboard';
+                if (userRole.includes('ADMIN')) defaultPath = '/admin/dashboard';
+                else if (userRole.includes('ACCOUNTANT')) defaultPath = '/accountant/dashboard';
+
+                navigate(from || defaultPath, { replace: true });
             }
         } catch (err) {
             setError(err.response?.data?.message || "Authentication failed.");

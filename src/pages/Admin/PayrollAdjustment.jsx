@@ -9,48 +9,48 @@ const PayrollAdjustment = () => {
     
     const isAdmin = useMemo(() => location.pathname.includes("/admin"), [location.pathname]);
 
+    // Initialize state from navigation location OR session storage for persistence on refresh
     const [payrollContext, setPayrollContext] = useState(() => {
-        if (location.state?.employee) return location.state;
+        if (location.state?.empId) return location.state;
         const saved = sessionStorage.getItem("active_payroll_adjustment");
         return saved ? JSON.parse(saved) : null;
     });
 
-    // --- NEW: Added state for Earned Salary to make it editable here too ---
-    const [earnedSalary, setEarnedSalary] = useState(payrollContext?.initialInputs?.earnedSalary ?? 0);
-    const [festivalBonus, setFestivalBonus] = useState(payrollContext?.initialInputs?.festivalBonus ?? 0);
-    const [otherBonus, setOtherBonus] = useState(payrollContext?.initialInputs?.bonuses ?? 0);
-    const [citContribution, setCitContribution] = useState(payrollContext?.initialInputs?.citContribution ?? 0);
+    // --- State for core values sent from the Payroll Command Center ---
+    const [earnedSalary, setEarnedSalary] = useState(payrollContext?.earnedSalary ?? 0);
+    const [ssfContribution, setSsfContribution] = useState(payrollContext?.ssfContribution ?? 0);
+    const [houseRentAllowance, setHouseRentAllowance] = useState(payrollContext?.houseRentAllowance ?? 0);
+    const [dearnessAllowance, setDearnessAllowance] = useState(payrollContext?.dearnessAllowance ?? 0);
 
     const [dbComponents, setDbComponents] = useState([]);
-    const [selectedComponents, setSelectedComponents] = useState(payrollContext?.persistedAdjustments || []);
+    const [selectedComponents, setSelectedComponents] = useState(payrollContext?.extraComponents || []);
     const [newCompId, setNewCompId] = useState("");
     const [tempAmount, setTempAmount] = useState("");
     const [tempType, setTempType] = useState("EARNING");
 
     const getPayrollHomePath = () => isAdmin ? "/admin/payroll" : "/accountant/payroll-processing";
 
-    // --- UPDATED: Persist progress including the manual salary ---
+    // --- Sync progress to Session Storage to prevent data loss ---
     useEffect(() => {
-        if (payrollContext?.employee) {
+        if (payrollContext?.empId) {
             const stateToSave = {
                 ...payrollContext,
-                initialInputs: { 
-                    ...payrollContext.initialInputs,
-                    earnedSalary, // Save the manual edit
-                    festivalBonus, 
-                    bonuses: otherBonus, 
-                    citContribution 
-                },
-                persistedAdjustments: selectedComponents
+                earnedSalary,
+                ssfContribution,
+                houseRentAllowance,
+                dearnessAllowance,
+                extraComponents: selectedComponents
             };
             sessionStorage.setItem("active_payroll_adjustment", JSON.stringify(stateToSave));
         }
-    }, [earnedSalary, festivalBonus, otherBonus, citContribution, selectedComponents, payrollContext]);
+    }, [earnedSalary, ssfContribution, houseRentAllowance, dearnessAllowance, selectedComponents, payrollContext]);
 
+    // --- Fetch Dynamic Components (Filtered) ---
     useEffect(() => {
         api.get("/salary-components")
             .then((res) => {
-                const fixed = ["dearness allowance", "house rent allowance", "ssf", "basic salary"];
+                // We exclude the 4 main components already handled in the summary strip
+                const fixed = ["dearness allowance", "house rent allowance", "ssf", "ssf contribution", "basic salary"];
                 const filtered = res.data
                     .filter(c => !fixed.includes(c.componentName.toLowerCase()))
                     .sort((a, b) => a.componentName.localeCompare(b.componentName));
@@ -82,18 +82,16 @@ const PayrollAdjustment = () => {
         }
     };
 
-    // --- CRITICAL FIX: Sending ALL data (including earnedSalary) to Backend ---
     const handleProceed = async () => {
         try {
             const payload = {
-                empId: payrollContext.employee.empId,
+                empId: payrollContext.empId,
                 year: payrollContext.year,
                 month: payrollContext.month,
-                // These are the values the backend needs for the final calculation
                 earnedSalary: parseFloat(earnedSalary || 0), 
-                festivalBonus: parseFloat(festivalBonus || 0),
-                bonuses: parseFloat(otherBonus || 0),
-                citContribution: parseFloat(citContribution || 0),
+                ssfContribution: parseFloat(ssfContribution || 0),
+                houseRentAllowance: parseFloat(houseRentAllowance || 0),
+                dearnessAllowance: parseFloat(dearnessAllowance || 0),
                 extraComponents: selectedComponents 
             };
 
@@ -103,7 +101,12 @@ const PayrollAdjustment = () => {
             navigate(`${basePath}/preview`, { 
                 state: { 
                     previewData: res.data, 
-                    originalPayload: payload 
+                    originalPayload: {
+                        ...payload,
+                        fullName: payrollContext.fullName, 
+                        paymentMethodId: payrollContext.paymentMethodId,
+                        payPeriodStart: payrollContext.payPeriodStart
+                    } 
                 } 
             });
         } catch (err) {
@@ -116,7 +119,7 @@ const PayrollAdjustment = () => {
         navigate(getPayrollHomePath());
     };
 
-    if (!payrollContext?.employee) {
+    if (!payrollContext?.empId) {
         return (
             <div className="adj-loading">
                 <p>No active payroll session found.</p>
@@ -131,15 +134,14 @@ const PayrollAdjustment = () => {
                 <header className="adj-header">
                     <div className="adj-title-box">
                         <h1>Payroll Adjustment</h1>
-                        <p>Employee: <strong>{payrollContext.employee?.fullName}</strong></p>
+                        <p>Employee: <strong>{payrollContext.fullName}</strong> (ID: {payrollContext.empId})</p>
                     </div>
                     <div className="adj-period-badge">{payrollContext.month} {payrollContext.year}</div>
                 </header>
 
                 <div className="adj-summary-strip">
-                    {/* --- NEW: Earned Salary Input Column --- */}
                     <div className="summary-item highlight-item">
-                        <label>EARNED SALARY (EDITABLE)</label>
+                        <label>EARNED SALARY</label>
                         <input 
                             type="number" 
                             value={earnedSalary} 
@@ -148,23 +150,38 @@ const PayrollAdjustment = () => {
                         />
                     </div>
                     <div className="summary-item">
-                        <label>FESTIVAL BONUS</label>
-                        <input type="number" value={festivalBonus} onChange={(e) => setFestivalBonus(e.target.value)} className="adj-mini-input" />
+                        <label>SSF (11%)</label>
+                        <input 
+                            type="number" 
+                            value={ssfContribution} 
+                            onChange={(e) => setSsfContribution(e.target.value)} 
+                            className="adj-mini-input" 
+                        />
                     </div>
                     <div className="summary-item">
-                        <label>OTHER BONUSES</label>
-                        <input type="number" value={otherBonus} onChange={(e) => setOtherBonus(e.target.value)} className="adj-mini-input" />
+                        <label>HOUSE RENT</label>
+                        <input 
+                            type="number" 
+                            value={houseRentAllowance} 
+                            onChange={(e) => setHouseRentAllowance(e.target.value)} 
+                            className="adj-mini-input" 
+                        />
                     </div>
                     <div className="summary-item">
-                        <label>CIT (Rs.)</label>
-                        <input type="number" value={citContribution} onChange={(e) => setCitContribution(e.target.value)} className="adj-mini-input" />
+                        <label>DEARNESS</label>
+                        <input 
+                            type="number" 
+                            value={dearnessAllowance} 
+                            onChange={(e) => setDearnessAllowance(e.target.value)} 
+                            className="adj-mini-input" 
+                        />
                     </div>
                 </div>
 
                 <section className="adj-selector-section">
                     <div className="adj-input-row">
                         <div className="input-col-select">
-                            <label className="field-tiny-label">COMPONENT</label>
+                            <label className="field-tiny-label">OTHER COMPONENTS</label>
                             <select value={newCompId} onChange={(e) => setNewCompId(e.target.value)} className="adj-select-field">
                                 <option value="">Select Component</option>
                                 {dbComponents.map(c => (
@@ -181,7 +198,12 @@ const PayrollAdjustment = () => {
                         </div>
                         <div className="input-col-amount">
                             <label className="field-tiny-label">AMOUNT</label>
-                            <input type="number" className="adj-input-field" value={tempAmount} onChange={(e) => setTempAmount(e.target.value)} />
+                            <input 
+                                type="number" 
+                                className="adj-input-field" 
+                                value={tempAmount} 
+                                onChange={(e) => setTempAmount(e.target.value)} 
+                            />
                         </div>
                         <button className="adj-add-btn-fixed" onClick={handleAddComponent}>Add</button>
                     </div>
@@ -198,7 +220,12 @@ const PayrollAdjustment = () => {
                                 </div>
                                 <div className="queue-actions">
                                     <span className="queue-val">Rs. {comp.amount.toLocaleString()}</span>
-                                    <button className="queue-rm" onClick={() => setSelectedComponents(prev => prev.filter(s => s.id !== comp.id))}>&times;</button>
+                                    <button 
+                                        className="queue-rm" 
+                                        onClick={() => setSelectedComponents(prev => prev.filter(s => s.id !== comp.id))}
+                                    >
+                                        &times;
+                                    </button>
                                 </div>
                             </div>
                         ))}

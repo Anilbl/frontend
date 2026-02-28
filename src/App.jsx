@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useLocation } from "react-router-dom";
 
 /* ================= LAYOUTS ================= */
 import EmployeeLayout from "./components/EmployeeLayout";
@@ -41,28 +41,24 @@ import SalaryAnalytics from "./pages/Employee/SalaryAnalytics.jsx";
 import Settings from "./pages/Employee/Settings.jsx";
 
 /* ================= UPDATED PROTECTED ROUTE ================= */
-// This logic now checks BOTH the role string AND the specific boolean flags
 const ProtectedRoute = ({ requiredFlag }) => {
+  const location = useLocation();
   const savedUser = localStorage.getItem("user_session");
   const user = savedUser ? JSON.parse(savedUser) : null;
 
-  // 1. If no session, go to login
-  if (!user || !user.token) return <Navigate to="/" replace />;
+  // 1. If no session, go to login but save current location in 'state'
+  if (!user || !user.token) {
+    return <Navigate to="/" state={{ from: location }} replace />;
+  }
 
-  // 2. Logic for "No Re-Login" Portal Switching
-  // We check the boolean flags we added to the DTO: isAdmin, isAccountant, hasEmployeeRole
   const hasAccess = user[requiredFlag] === true;
-
-  // 3. Fallback: If flags are missing for some reason, check the string role
   const userRole = (typeof user.role === 'object' ? user.role.roleName : user.role || "").toUpperCase();
   const isAdminString = userRole.includes("ADMIN");
 
-  // Admins are "Super Users" - they can access everything
   if (hasAccess || isAdminString) {
     return <Outlet />;
   }
 
-  // 4. If no access, kick back to login (or their specific dashboard)
   return <Navigate to="/" replace />;
 };
 
@@ -77,30 +73,28 @@ function App() {
     <Router>
       <Routes>
         {/* PUBLIC & AUTH ROUTES */}
-        <Route path="/" element={<Landing setUser={setUser} />} />
+        <Route path="/" element={<Landing setUser={setUser} user={user} />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/initial-setup" element={<InitialSetup />} />
 
-        {/* ACCOUNTANT MODULE - Checks for 'isAccountant' flag */}
+        {/* ACCOUNTANT MODULE */}
         <Route path="/accountant" element={<ProtectedRoute requiredFlag="isAccountant" />}>
           <Route element={<AccountantLayout />}>
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<AccountantDashboard />} />
-            
             <Route path="payroll-processing">
                 <Route index element={<AdminPayroll />} />
                 <Route path="adjust" element={<PayrollAdjustment />} />
                 <Route path="preview" element={<PayrollPreview />} />
             </Route>
-
             <Route path="salary-management" element={<Salary />} />
             <Route path="tax-compliance" element={<Tax />} />
             <Route path="financial-reports" element={<AccountantReport />} />
           </Route>
         </Route>
 
-        {/* ADMIN MODULE - Checks for 'isAdmin' flag */}
+        {/* ADMIN MODULE */}
         <Route path="/admin" element={<ProtectedRoute requiredFlag="isAdmin" />}>
           <Route element={<AdminLayout />}>
             <Route index element={<Navigate to="dashboard" replace />} />
@@ -117,19 +111,17 @@ function App() {
             <Route path="leave" element={<Leave />} />
             <Route path="holidays" element={<HolidaySettings />} />
             <Route path="documents" element={<DocumentReview />} />
-            
             <Route path="payroll">
               <Route index element={<AdminPayroll />} />
               <Route path="adjust" element={<PayrollAdjustment />} />
               <Route path="preview" element={<PayrollPreview />} />
             </Route>
-
             <Route path="report" element={<Report />} />
             <Route path="system-config" element={<SystemConfig />} />
           </Route>
         </Route>
 
-        {/* EMPLOYEE MODULE - Checks for 'hasEmployeeRole' flag */}
+        {/* EMPLOYEE MODULE */}
         <Route path="/employee" element={<ProtectedRoute requiredFlag="hasEmployeeRole" />}>
           <Route element={<EmployeeLayout />}>
             <Route index element={<Navigate to="dashboard" replace />} />

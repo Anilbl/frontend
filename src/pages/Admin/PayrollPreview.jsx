@@ -27,7 +27,6 @@ const PayrollPreview = () => {
     const { state } = location || {};
     const { previewData, originalPayload } = state || {};
 
-    // Role-based logic
     const isAdmin = useMemo(() => location.pathname.includes("/admin"), [location.pathname]);
     const getPayrollHomePath = () => isAdmin ? "/admin/payroll" : "/accountant/payroll-processing";
 
@@ -44,28 +43,28 @@ const PayrollPreview = () => {
     }
 
     const handleGoBack = () => {
+        // We pass the original payload back. The Adjustment page uses this to 
+        // repopulate the earnedSalary and the extraComponents list.
         navigate(`${getPayrollHomePath()}/adjust`, {
             state: {
-                employee: previewData.employee,
-                month: originalPayload.month,
-                year: originalPayload.year,
-                initialInputs: originalPayload,
-                persistedAdjustments: originalPayload.extraComponents || [] 
+                ...originalPayload,
+                fullName: originalPayload.fullName,
             }
         });
     };
 
     const handleDisbursement = async () => {
         try {
+            // 1. Save the payroll record to DB
             const processResponse = await api.post("/payrolls/process", originalPayload);
             const savedPayroll = processResponse.data;
             const payrollId = savedPayroll.payrollId || savedPayroll.id;
 
+            // 2. Initiate eSewa payment
             const initResponse = await api.get(`/esewa/initiate/${payrollId}`);
             const esewaData = initResponse.data;
 
             alert("Payroll finalized. Redirecting to eSewa...");
-            
             sessionStorage.removeItem("active_payroll_adjustment");
 
             const esewaParams = {
@@ -86,21 +85,28 @@ const PayrollPreview = () => {
 
         } catch (err) {
             console.error("Disbursement Error:", err);
-            alert("Process completed with warnings or error: " + (err.response?.data?.message || err.message));
-            navigate(getPayrollHomePath());
+            alert("Process failed: " + (err.response?.data?.message || err.message));
         }
     };
 
+    // --- Component Categorization Logic ---
     const allComponents = previewData.extraComponents || [];
+    
+    // 1. Earnings (Salaries, Allowances, Bonuses)
     const earnings = allComponents.filter(c => c.type === "EARNING");
+    
+    // 2. Statutory Deductions (SSF, CIT - these reduce taxable income)
     const statutory = allComponents.filter(c => 
         c.type === "DEDUCTION" && 
-        (c.componentName.includes("SSF") || c.componentName.includes("CIT"))
+        (c.componentName.toUpperCase().includes("SSF") || 
+         c.componentName.toUpperCase().includes("RETIREMENT") ||
+         c.componentName.toUpperCase().includes("CIT"))
     );
+
+    // 3. Other Deductions (Post-tax: Loans, Penalties, etc.)
     const otherDeds = allComponents.filter(c => 
         c.type === "DEDUCTION" && 
-        !c.componentName.includes("SSF") && 
-        !c.componentName.includes("CIT")
+        !statutory.some(s => s.componentName === c.componentName)
     );
 
     return (
@@ -108,7 +114,7 @@ const PayrollPreview = () => {
             <div className="preview-container">
                 <div className="preview-top-bar">
                     <button className="back-link" onClick={handleGoBack}>← Adjust Components</button>
-                    <div className="status-indicator">OFFICIAL PREVIEW</div>
+                    <div className="status-indicator">OFFICIAL CALCULATION PREVIEW</div>
                 </div>
 
                 <div className="main-preview-grid">
@@ -118,16 +124,15 @@ const PayrollPreview = () => {
                         <p className="emp-meta">{previewData.employee?.position?.designationTitle}</p>
                         <p className="emp-meta">ID: #{previewData.employee?.empId}</p>
                         
-                        {/* --- ADDED MARITAL STATUS FOR TAX VERIFICATION --- */}
                         <div className="tax-context-box">
                             <span className="status-badge">
-                                Tax Basis: <strong>{previewData.employee?.maritalStatus || "N/A"}</strong>
+                                Status: <strong>{previewData.employee?.maritalStatus || "SINGLE"}</strong>
                             </span>
                         </div>
 
                         <div className="attendance-summary-box">
-                            <h4>REMARKS</h4>
-                            <p>{previewData.remarks || "No remarks provided."}</p>
+                            <h4>PAY PERIOD</h4>
+                            <p>{originalPayload.month} {originalPayload.year}</p>
                         </div>
                     </aside>
 
@@ -138,20 +143,23 @@ const PayrollPreview = () => {
                                 <span>AMOUNT (NPR)</span>
                             </div>
 
+                            {/* --- SECTION 1: EARNINGS --- */}
                             <div className="payslip-section">
                                 <label className="section-label">1. Gross Earnings</label>
-                                {earnings.map((c, i) => (
+                                {earnings.length > 0 ? earnings.map((c, i) => (
                                     <div key={`earn-${i}`} className="payslip-row">
                                         <span>{c.componentName}</span>
                                         <span className="pos">+{c.amount?.toLocaleString()}</span>
                                     </div>
-                                ))}
+                                )) : <div className="payslip-row"><span>Base Earnings</span><span>0.00</span></div>}
+                                
                                 <div className="payslip-row highlight-gross">
                                     <span>TOTAL GROSS SALARY (A)</span>
                                     <span>Rs. {previewData.grossSalary?.toLocaleString()}</span>
                                 </div>
                             </div>
 
+                            {/* --- SECTION 2: STATUTORY --- */}
                             <div className="payslip-section taxable-bridge-section">
                                 <label className="section-label">2. Statutory Deductions (Pre-Tax)</label>
                                 {statutory.length > 0 ? statutory.map((c, i) => (
@@ -159,7 +167,7 @@ const PayrollPreview = () => {
                                         <span>{c.componentName}</span>
                                         <span className="neg">-{c.amount?.toLocaleString()}</span>
                                     </div>
-                                )) : <div className="payslip-row"><span>No Pre-tax Deductions</span><span>0.00</span></div>}
+                                )) : <div className="payslip-row"><span>No Statutory Deductions</span><span>0.00</span></div>}
                                 
                                 <div className="payslip-row highlight-taxable">
                                     <span>NET TAXABLE INCOME</span>
@@ -167,11 +175,12 @@ const PayrollPreview = () => {
                                 </div>
                             </div>
 
+                            {/* --- SECTION 3: TAX & OTHER --- */}
                             <div className="payslip-section">
-                                <label className="section-label">3. Income Tax & Other Deductions</label>
+                                <label className="section-label">3. Taxes & Other Deductions</label>
                                 <div className="payslip-row">
                                     <span>Income Tax (TDS)</span>
-                                    <span className="neg">-{previewData.totalTax?.toLocaleString() || "0"}</span>
+                                    <span className="neg">-{previewData.totalTax?.toLocaleString()}</span>
                                 </div>
                                 {otherDeds.map((c, i) => (
                                     <div key={`other-${i}`} className="payslip-row">
@@ -186,15 +195,15 @@ const PayrollPreview = () => {
                             </div>
 
                             <div className="net-pay-box">
-                                <label>NET PAYABLE AMOUNT</label>
+                                <label>NET DISBURSABLE SALARY</label>
                                 <h1>Rs. {previewData.netSalary?.toLocaleString()}</h1>
-                                <p className="calc-formula">Verified Formula: Gross (A) - Deductions (B)</p>
+                                <p className="calc-formula">Final Pay = Gross (A) - Total Deductions (B)</p>
                             </div>
                         </div>
 
                         <div className="action-footer">
-                            <button className="btn-cancel" onClick={handleGoBack}>Modify</button>
-                            <button className="btn-finalize" onClick={handleDisbursement}>Finalize & Disburse</button>
+                            <button className="btn-cancel" onClick={handleGoBack}>Modify Adjustments</button>
+                            <button className="btn-finalize" onClick={handleDisbursement}>Confirm & Disburse via eSewa</button>
                         </div>
                     </main>
                 </div>
